@@ -34,6 +34,9 @@ fn repl() {
 struct Exit(i32);
 impl Command for Exit {
     fn run(&self) -> bool {
+        if self.0 > 0 {
+            println!("{}", self.0);
+        }
         true
     }
 }
@@ -41,7 +44,8 @@ impl Command for Exit {
 struct Type(String);
 impl Command for Type {
     fn run(&self) -> bool {
-        todo!()
+        println!("looking for {}", self.0);
+        false
     }
 }
 
