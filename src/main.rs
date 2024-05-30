@@ -18,7 +18,7 @@ fn repl() {
 
         let command = input.trim();
 
-        println!("{}: command not found\n", command);
+        print!("{}: command not found\n", command);
         input.clear();
     }
 }
