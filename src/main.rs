@@ -6,7 +6,7 @@ fn main() {
 }
 
 fn repl() {
-    let run = true;
+    let mut run = true;
 
     let stdin = io::stdin();
     let mut input = String::new();
@@ -16,31 +16,40 @@ fn repl() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut input).unwrap();
 
-        let command = input.trim();
+        let i = &input.trim().split_whitespace().collect::<Vec<&str>>();
+        let command_input = CommandInput(i);
+        let command = Command::extract(command_input);
+        run = !command.run();
 
-        println!("{}: command not found", command);
         input.clear();
     }
 }
 
-enum Command<'a> {
+struct CommandInput<'a>(&'a [&'a str]);
+
+enum Command {
     Exit(ExitCode),
-    CommandNotFound(&'a str),
+    NotFound(String),
 }
 
-enum ExitCode {
-    Ok = 0,
-}
-
-impl<'a> From<&'a str> for Command<'a> {
-    fn from(value: &'a str) -> Self {
-        match value {
+impl Command {
+    pub fn extract(input: CommandInput) -> Self {
+        match input.0[0] {
             "exit" => Self::Exit(ExitCode::Ok),
-            _ => Self::CommandNotFound(value),
+            _ => Self::NotFound(input.0.join(" ")),
+        }
+    }
+    pub fn run(self) -> bool {
+        match self {
+            Self::Exit(_) => true,
+            Self::NotFound(cmd) => {
+                println!("{cmd}: command not found");
+                false
+            }
         }
     }
 }
 
-impl Command {
-    pub fn run(self) -> bool {}
+enum ExitCode {
+    Ok = 0,
 }
