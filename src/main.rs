@@ -1,5 +1,5 @@
-//#![warn(clippy::pedantic)]
 #[allow(unused_imports)]
+//#![warn(clippy::pedantic)]
 use std::io::{self, Write};
 
 fn main() {
