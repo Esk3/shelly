@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
-//#![warn(clippy::pedantic)]
 use std::io::{self, Write};
+//#![warn(clippy::pedantic)]
 
 fn main() {
     repl();
