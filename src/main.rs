@@ -1,4 +1,4 @@
-#![warn(clippy::pedantic)]
+//#![warn(clippy::pedantic)]
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
