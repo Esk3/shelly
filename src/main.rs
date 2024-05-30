@@ -16,7 +16,7 @@ fn repl() {
         io::stdout().flush().unwrap();
         stdin.read_line(&mut input).unwrap();
 
-        let i = &input.trim().split_whitespace().collect::<Vec<&str>>();
+        let i = &input.split_whitespace().collect::<Vec<&str>>();
         let command_input = CommandInput(i);
         let command = Command::extract(command_input);
         run = !command.run();
@@ -37,7 +37,7 @@ impl Command {
     pub fn extract(input: CommandInput) -> Self {
         match input.0[0] {
             "exit" => Self::Exit(ExitCode::Ok),
-            "echo" => Self::Echo(input.0[1].to_string()),
+            "echo" => Self::Echo(input.0[1..].join(" ")),
             _ => Self::NotFound(input.0.join(" ")),
         }
     }
