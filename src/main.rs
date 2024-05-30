@@ -22,3 +22,25 @@ fn repl() {
         input.clear();
     }
 }
+
+enum Command<'a> {
+    Exit(ExitCode),
+    CommandNotFound(&'a str),
+}
+
+enum ExitCode {
+    Ok = 0,
+}
+
+impl<'a> From<&'a str> for Command<'a> {
+    fn from(value: &'a str) -> Self {
+        match value {
+            "exit" => Self::Exit(ExitCode::Ok),
+            _ => Self::CommandNotFound(value),
+        }
+    }
+}
+
+impl Command {
+    pub fn run(self) -> bool {}
+}
