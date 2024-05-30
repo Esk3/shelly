@@ -31,6 +31,7 @@ enum Command {
     Exit(ExitCode),
     NotFound(String),
     Echo(String),
+    Type(String),
 }
 
 impl Command {
@@ -38,6 +39,7 @@ impl Command {
         match input.0[0] {
             "exit" => Self::Exit(ExitCode::Ok),
             "echo" => Self::Echo(input.0[1..].join(" ")),
+            "type" => Self::Type(input.0[1].to_string()),
             _ => Self::NotFound(input.0.join(" ")),
         }
     }
@@ -46,6 +48,15 @@ impl Command {
             Self::Exit(_) => true,
             Self::Echo(echo) => {
                 println!("{echo}");
+                false
+            }
+            Self::Type(cmd) => {
+                let input = vec![cmd.as_str()];
+                if let Self::NotFound(_) = Self::extract(CommandInput(&input)) {
+                    println!("{cmd} not found");
+                } else {
+                    println!("{cmd} is a shell builtin");
+                }
                 false
             }
             Self::NotFound(cmd) => {
