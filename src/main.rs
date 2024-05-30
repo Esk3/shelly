@@ -10,5 +10,7 @@ fn main() {
     let mut input = String::new();
     stdin.read_line(&mut input).unwrap();
 
-    print!("{}: command not found\n", input.trim_end_matches("\r\n"));
+    let command = input.trim();
+
+    println!("{}: command not found\n", command);
 }
