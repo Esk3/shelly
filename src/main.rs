@@ -39,7 +39,7 @@ impl Command {
         match input.0[0] {
             "exit" => Self::Exit(ExitCode::Ok),
             "echo" => Self::Echo(input.0[1..].join(" ")),
-            "type" => Self::Type(input.0[1].to_string()),
+            "type" => Self::Type(input.0.first().unwrap_or(&"").to_string()),
             _ => Self::NotFound(input.0.join(" ")),
         }
     }
