@@ -2,8 +2,6 @@
 use std::io::{self, Write};
 
 fn main() {
-    print!("$ ");
-    io::stdout().flush().unwrap();
     repl();
 }
 
@@ -14,6 +12,8 @@ fn repl() {
     let mut input = String::new();
 
     while run {
+        print!("$ ");
+        io::stdout().flush().unwrap();
         stdin.read_line(&mut input).unwrap();
 
         let command = input.trim();
