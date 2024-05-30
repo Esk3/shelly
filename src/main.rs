@@ -4,13 +4,21 @@ use std::io::{self, Write};
 fn main() {
     print!("$ ");
     io::stdout().flush().unwrap();
+    repl();
+}
 
-    // Wait for user input
+fn repl() {
+    let run = true;
+
     let stdin = io::stdin();
     let mut input = String::new();
-    stdin.read_line(&mut input).unwrap();
 
-    let command = input.trim();
+    while run {
+        stdin.read_line(&mut input).unwrap();
 
-    println!("{}: command not found\n", command);
+        let command = input.trim();
+
+        println!("{}: command not found\n", command);
+        input.clear();
+    }
 }
