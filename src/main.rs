@@ -213,7 +213,7 @@ impl ExitState {
                 false
             }
             ExitCommand::Exit => {
-                println!("exit {}", self.code as u32);
+                //println!("exit {}", self.code as u32);
                 true
             }
         }
