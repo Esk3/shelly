@@ -1,6 +1,6 @@
 use std::env;
 #[allow(unused_imports)]
-#[warn(clippy::pedantic)]
+//#[warn(clippy::pedantic)]
 use std::io::{self, Write};
 
 fn main() {
