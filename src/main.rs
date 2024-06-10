@@ -193,19 +193,19 @@ impl ShellCommand for Type {
 pub struct RunProgram;
 impl ShellCommand for RunProgram {
     fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
-        if let Some(path) = shell_args
+        if let Some(_path) = shell_args
             .path
             .iter()
             .map(|path| format!("{}/{}", path, input.first().unwrap()))
             .find(|path| std::fs::File::open(path).is_ok())
         {
             return Some(Box::new(move || {
-                let mut input = input
+                let input = input
                     .clone()
                     .iter()
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>();
-                input[0] = format!("{}/{}", path, input.first().unwrap());
+                //input[0] = format!("{}/{}", path, input.first().unwrap());
                 self.execute(CommandArgs {
                     input,
                     shell_args: shell_args.clone(),
