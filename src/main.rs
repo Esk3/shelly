@@ -205,7 +205,6 @@ impl ShellCommand for RunProgram {
                     .iter()
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>();
-                //input[0] = format!("{}/{}", path, input.first().unwrap());
                 self.execute(CommandArgs {
                     input,
                     shell_args: shell_args.clone(),
@@ -215,14 +214,13 @@ impl ShellCommand for RunProgram {
         None
     }
     fn execute(&self, args: CommandArgs) -> ExitState {
-        println!("{:?}", args);
-        let output = process::Command::new(args.input.first().unwrap())
+        let _output = process::Command::new(args.input.first().unwrap())
             .args(&args.input[1..])
             .status()
             .unwrap();
         ExitState {
             code: ExitCode::Ok,
-            cmd: ExitCommand::Print(output.to_string()),
+            cmd: ExitCommand::None,
         }
     }
 }
