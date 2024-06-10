@@ -4,9 +4,8 @@ use std::env;
 use std::io::{self, Write};
 
 fn main() {
-    let args = ShellArgs {
-        path: env::var("PATH").unwrap(),
-    };
+    let path_env = env::var("PATH").unwrap();
+    let args = ShellArgs::new(path_env);
     let shell = Shell::new(Commands::default(), args);
     shell.run();
 }
@@ -89,7 +88,14 @@ pub trait ShellCommand {
 
 #[derive(Clone, Debug)]
 pub struct ShellArgs {
-    path: String,
+    path: Vec<String>,
+}
+impl ShellArgs {
+    pub fn new(path: String) -> Self {
+        Self {
+            path: path.split(':').map(|s| s.to_string()).collect(),
+        }
+    }
 }
 #[derive(Debug)]
 pub struct CommandArgs {
@@ -127,15 +133,21 @@ pub struct Type;
 impl ShellCommand for Type {
     fn execute(&self, args: CommandArgs) -> ExitState {
         println!("run type with args {:?}", args);
-        let t = std::fs::metadata(format!(
-            "{}/{}",
-            args.shell_args.path,
-            args.input.first().unwrap()
-        ));
-        let p = if t.is_ok() { "found" } else { "not found" };
+        if let Some(path) = args
+            .shell_args
+            .path
+            .iter()
+            .map(|path| format!("{}/{}", path, args.input.first().unwrap()))
+            .find(|path| std::fs::metadata(path).is_ok())
+        {
+            return ExitState {
+                code: ExitCode::Ok,
+                cmd: ExitCommand::Print(format!("{} is {}", args.input.first().unwrap(), path)),
+            };
+        }
         ExitState {
             code: ExitCode::Ok,
-            cmd: ExitCommand::Print(p.to_string()),
+            cmd: ExitCommand::Print("type not found!".to_string()),
         }
     }
     fn extract<'a>(
