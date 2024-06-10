@@ -145,7 +145,7 @@ impl ShellCommand for Type {
         }
         ExitState {
             code: ExitCode::Ok,
-            cmd: ExitCommand::Print("type not found!".to_string()),
+            cmd: ExitCommand::Print(format!("{}: not found", args.input.first().unwrap())),
         }
     }
     fn extract<'a>(
