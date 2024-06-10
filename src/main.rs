@@ -33,12 +33,16 @@ impl Shell {
             io::stdout().flush().unwrap();
             stdin.read_line(&mut input).unwrap();
 
-            let args = self.commands.extract_command(&input, &self.args);
-            let result = match args {
-                Some(cmd) => cmd(),
-                None => self.commands.not_found(&input),
-            };
-            self.run = !result.resolve();
+            {
+                let args = self
+                    .commands
+                    .extract_command(input.split_whitespace().collect(), &self.args);
+                let result = match args {
+                    Some(cmd) => cmd(),
+                    None => self.commands.not_found(&input),
+                };
+                self.run = !result.resolve();
+            }
             input.clear();
         }
     }
@@ -51,12 +55,12 @@ pub struct Commands {
 impl Commands {
     pub fn extract_command<'a>(
         &'a self,
-        input: &str,
+        input: Vec<&'a str>,
         shell_args: &'a ShellArgs,
     ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
         self.commands
             .iter()
-            .find_map(|c| c.extract(input, shell_args))
+            .find_map(|c| c.extract(input.clone(), shell_args))
     }
     pub fn not_found(&self, input: &str) -> ExitState {
         ExitState {
@@ -78,7 +82,7 @@ pub trait ShellCommand {
     fn execute(&self, args: CommandArgs) -> ExitState;
     fn extract<'a>(
         &'a self,
-        input: &str,
+        input: Vec<&'a str>,
         shell_args: &'a ShellArgs,
     ) -> Option<Box<dyn Fn() -> ExitState + '_>>;
 }
@@ -102,15 +106,15 @@ impl ShellCommand for Echo {
     }
     fn extract<'a>(
         &'a self,
-        input: &str,
+        input: Vec<&'a str>,
         shell_args: &'a ShellArgs,
     ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
-        if input != "echo" {
+        if input[0] != "echo" {
             return None;
         }
-        Some(Box::new(|| {
+        Some(Box::new(move || {
             self.execute(CommandArgs {
-                input: Vec::new(),
+                input: input[1..].iter().map(|s| s.to_string()).collect(),
                 shell_args: shell_args.clone(),
             })
         }))
@@ -133,15 +137,15 @@ impl ShellCommand for Type {
     }
     fn extract<'a>(
         &'a self,
-        input: &str,
+        input: Vec<&'a str>,
         shell_args: &'a ShellArgs,
     ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
-        if !input.starts_with("type ") {
+        if input[0] != "type" {
             return None;
         }
-        Some(Box::new(|| {
+        Some(Box::new(move || {
             self.execute(CommandArgs {
-                input: Vec::new(),
+                input: input[1..].iter().map(|s| s.to_string()).collect(),
                 shell_args: shell_args.clone(),
             })
         }))
