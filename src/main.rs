@@ -215,6 +215,7 @@ impl ShellCommand for RunProgram {
         None
     }
     fn execute(&self, args: CommandArgs) -> ExitState {
+        println!("{:?}", args);
         let output = process::Command::new(args.input.first().unwrap())
             .args(&args.input[1..])
             .status()
