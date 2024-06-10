@@ -108,7 +108,7 @@ impl ShellCommand for Echo {
     fn execute(&self, args: CommandArgs) -> ExitState {
         ExitState {
             code: ExitCode::Ok,
-            cmd: ExitCommand::Print(args.input.into_iter().next().unwrap()),
+            cmd: ExitCommand::Print(args.input.join(" ")),
         }
     }
     fn extract<'a>(
@@ -125,6 +125,31 @@ impl ShellCommand for Echo {
                 shell_args: shell_args.clone(),
             })
         }))
+    }
+}
+
+pub struct Exit;
+impl ShellCommand for Exit {
+    fn execute(&self, _args: CommandArgs) -> ExitState {
+        ExitState {
+            code: ExitCode::Ok,
+            cmd: ExitCommand::Exit,
+        }
+    }
+    fn extract<'a>(
+        &'a self,
+        input: Vec<&'a str>,
+        shell_args: &'a ShellArgs,
+    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+        match input[0] {
+            "exit" => Some(Box::new(|| {
+                self.execute(CommandArgs {
+                    input: Vec::new(),
+                    shell_args: shell_args.clone(),
+                })
+            })),
+            _ => None,
+        }
     }
 }
 
