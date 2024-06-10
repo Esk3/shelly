@@ -138,7 +138,7 @@ impl ShellCommand for Type {
         {
             return ExitState {
                 code: ExitCode::Ok,
-                cmd: ExitCommand::Print(format!("{} is shell builtin", cmd)),
+                cmd: ExitCommand::Print(format!("{} is a shell builtin", cmd)),
             };
         }
         if let Some(path) = args
