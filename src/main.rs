@@ -1,7 +1,7 @@
-use std::env;
 #[allow(unused_imports)]
 //#[warn(clippy::pedantic)]
 use std::io::{self, Write};
+use std::{env, process};
 
 fn main() {
     let path_env = env::var("PATH").unwrap();
@@ -77,13 +77,10 @@ impl Default for Commands {
     }
 }
 
+type CommandValue<'a> = Option<Box<dyn Fn() -> ExitState + 'a>>;
 pub trait ShellCommand {
     fn execute(&self, args: CommandArgs) -> ExitState;
-    fn extract<'a>(
-        &'a self,
-        input: Vec<&'a str>,
-        shell_args: &'a ShellArgs,
-    ) -> Option<Box<dyn Fn() -> ExitState + '_>>;
+    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue;
 }
 
 #[derive(Clone, Debug)]
@@ -111,11 +108,7 @@ impl ShellCommand for Echo {
             cmd: ExitCommand::Print(args.input.join(" ")),
         }
     }
-    fn extract<'a>(
-        &'a self,
-        input: Vec<&'a str>,
-        shell_args: &'a ShellArgs,
-    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
         if input[0] != "echo" {
             return None;
         }
@@ -136,11 +129,7 @@ impl ShellCommand for Exit {
             cmd: ExitCommand::Exit,
         }
     }
-    fn extract<'a>(
-        &'a self,
-        input: Vec<&'a str>,
-        shell_args: &'a ShellArgs,
-    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
         match input[0] {
             "exit" => Some(Box::new(|| {
                 self.execute(CommandArgs {
@@ -183,11 +172,7 @@ impl ShellCommand for Type {
             cmd: ExitCommand::Print(format!("{}: not found", args.input.first().unwrap())),
         }
     }
-    fn extract<'a>(
-        &'a self,
-        input: Vec<&'a str>,
-        shell_args: &'a ShellArgs,
-    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
         if input[0] != "type" {
             return None;
         }
@@ -197,6 +182,42 @@ impl ShellCommand for Type {
                 shell_args: shell_args.clone(),
             })
         }))
+    }
+}
+
+pub struct RunProgram;
+impl ShellCommand for RunProgram {
+    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
+        if let Some(path) = shell_args
+            .path
+            .iter()
+            .map(|path| format!("{}/{}", path, input.first().unwrap()))
+            .find(|path| std::fs::File::open(path).is_ok())
+        {
+            return Some(Box::new(move || {
+                let mut input = input
+                    .clone()
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
+                input[0] = format!("{}/{}", path, input.first().unwrap());
+                self.execute(CommandArgs {
+                    input,
+                    shell_args: shell_args.clone(),
+                })
+            }));
+        }
+        None
+    }
+    fn execute(&self, args: CommandArgs) -> ExitState {
+        let output = process::Command::new(args.input.first().unwrap())
+            .args(&args.input[1..])
+            .status()
+            .unwrap();
+        ExitState {
+            code: ExitCode::Ok,
+            cmd: ExitCommand::Print(output.to_string()),
+        }
     }
 }
 
