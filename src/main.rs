@@ -72,7 +72,7 @@ impl Commands {
 impl Default for Commands {
     fn default() -> Self {
         Self {
-            commands: vec![Box::new(Echo), Box::new(Type)],
+            commands: vec![Box::new(Echo), Box::new(Exit), Box::new(Type)],
         }
     }
 }
