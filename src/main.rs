@@ -117,6 +117,37 @@ impl ShellCommand for Echo {
     }
 }
 
+pub struct Type;
+impl ShellCommand for Type {
+    fn execute(&self, args: CommandArgs) -> ExitState {
+        let t = std::fs::metadata(format!(
+            "{}/{}",
+            args.shell_args.path,
+            args.input.first().unwrap()
+        ));
+        let p = if t.is_ok() { "found" } else { "not found" };
+        ExitState {
+            code: ExitCode::Ok,
+            cmd: ExitCommand::Print(p.to_string()),
+        }
+    }
+    fn extract<'a>(
+        &'a self,
+        input: &str,
+        shell_args: &'a ShellArgs,
+    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+        if !input.starts_with("type ") {
+            return None;
+        }
+        Some(Box::new(|| {
+            self.execute(CommandArgs {
+                input: Vec::new(),
+                shell_args: shell_args.clone(),
+            })
+        }))
+    }
+}
+
 pub struct ExitState {
     code: ExitCode,
     cmd: ExitCommand,
