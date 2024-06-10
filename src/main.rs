@@ -87,10 +87,11 @@ pub trait ShellCommand {
     ) -> Option<Box<dyn Fn() -> ExitState + '_>>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ShellArgs {
     path: String,
 }
+#[derive(Debug)]
 pub struct CommandArgs {
     input: Vec<String>,
     shell_args: ShellArgs,
@@ -112,6 +113,7 @@ impl ShellCommand for Echo {
         if input[0] != "echo" {
             return None;
         }
+        println!("creatin new echo cmd on input: {:?}", input);
         Some(Box::new(move || {
             self.execute(CommandArgs {
                 input: input[1..].iter().map(|s| s.to_string()).collect(),
@@ -124,6 +126,7 @@ impl ShellCommand for Echo {
 pub struct Type;
 impl ShellCommand for Type {
     fn execute(&self, args: CommandArgs) -> ExitState {
+        println!("run type with args {:?}", args);
         let t = std::fs::metadata(format!(
             "{}/{}",
             args.shell_args.path,
@@ -143,6 +146,7 @@ impl ShellCommand for Type {
         if input[0] != "type" {
             return None;
         }
+        println!("creatin new type cmd on input: {:?}", input);
         Some(Box::new(move || {
             self.execute(CommandArgs {
                 input: input[1..].iter().map(|s| s.to_string()).collect(),
