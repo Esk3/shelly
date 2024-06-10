@@ -201,6 +201,7 @@ impl ShellCommand for Type {
 }
 
 pub struct ExitState {
+    #[allow(dead_code)]
     code: ExitCode,
     cmd: ExitCommand,
 }
