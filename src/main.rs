@@ -64,7 +64,7 @@ impl Commands {
     pub fn not_found(&self, input: &str) -> ExitState {
         ExitState {
             code: ExitCode::Err,
-            cmd: ExitCommand::Print(format!("command: {} not found", input)),
+            cmd: ExitCommand::Print(format!("{}: command not found", input)),
         }
     }
 }
