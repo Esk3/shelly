@@ -131,6 +131,16 @@ impl ShellCommand for Echo {
 pub struct Type;
 impl ShellCommand for Type {
     fn execute(&self, args: CommandArgs) -> ExitState {
+        let shell_commands = ["echo", "exit", "type"];
+        if let Some(cmd) = shell_commands
+            .iter()
+            .find(|cmd| *cmd == args.input.first().unwrap())
+        {
+            return ExitState {
+                code: ExitCode::Ok,
+                cmd: ExitCommand::Print(format!("{} is shell builtin", cmd)),
+            };
+        }
         if let Some(path) = args
             .shell_args
             .path
@@ -144,7 +154,7 @@ impl ShellCommand for Type {
             };
         }
         ExitState {
-            code: ExitCode::Ok,
+            code: ExitCode::Err,
             cmd: ExitCommand::Print(format!("{}: not found", args.input.first().unwrap())),
         }
     }
