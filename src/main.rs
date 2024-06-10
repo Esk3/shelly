@@ -65,7 +65,7 @@ impl Commands {
     pub fn not_found(&self, input: &str) -> ExitState {
         ExitState {
             code: ExitCode::Err,
-            cmd: ExitCommand::Print(format!("{} not found", input)),
+            cmd: ExitCommand::Print(format!("command: {} not found", input)),
         }
     }
 }
@@ -73,7 +73,7 @@ impl Commands {
 impl Default for Commands {
     fn default() -> Self {
         Self {
-            commands: vec![Box::new(Echo)],
+            commands: vec![Box::new(Echo), Box::new(Type)],
         }
     }
 }
