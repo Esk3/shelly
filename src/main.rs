@@ -4,20 +4,25 @@ use std::env;
 use std::io::{self, Write};
 
 fn main() {
-    let shell = Shell::new(Commands::default());
+    let args = ShellArgs {
+        path: env::var("PATH").unwrap(),
+    };
+    let shell = Shell::new(Commands::default(), args);
     shell.run();
 }
 
 struct Shell {
     run: bool,
     commands: Commands,
+    args: ShellArgs,
 }
 
 impl Shell {
-    pub fn new(commands: Commands) -> Self {
+    pub fn new(commands: Commands, args: ShellArgs) -> Self {
         Self {
             run: true,
             commands,
+            args,
         }
     }
     pub fn run(mut self) {
@@ -28,9 +33,9 @@ impl Shell {
             io::stdout().flush().unwrap();
             stdin.read_line(&mut input).unwrap();
 
-            let args = self.commands.extract_command(&input);
+            let args = self.commands.extract_command(&input, &self.args);
             let result = match args {
-                Some(args) => self.commands.execute_command(args),
+                Some(cmd) => cmd(),
                 None => self.commands.not_found(&input),
             };
             self.run = !result.resolve();
@@ -44,14 +49,20 @@ pub struct Commands {
 }
 
 impl Commands {
-    pub fn extract_command(&self, input: &str) -> Option<CommandArgs> {
-        todo!()
-    }
-    pub fn execute_command(&self, args: CommandArgs) -> ExitState {
-        todo!()
+    pub fn extract_command<'a>(
+        &'a self,
+        input: &str,
+        shell_args: &'a ShellArgs,
+    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+        self.commands
+            .iter()
+            .find_map(|c| c.extract(input, shell_args))
     }
     pub fn not_found(&self, input: &str) -> ExitState {
-        todo!()
+        ExitState {
+            code: ExitCode::Err,
+            cmd: ExitCommand::Print(format!("{} not found", input)),
+        }
     }
 }
 
@@ -65,13 +76,20 @@ impl Default for Commands {
 
 pub trait ShellCommand {
     fn execute(&self, args: CommandArgs) -> ExitState;
-    fn extract(&self, shell_args: &ShellArgs) -> Option<CommandArgs>;
+    fn extract<'a>(
+        &'a self,
+        input: &str,
+        shell_args: &'a ShellArgs,
+    ) -> Option<Box<dyn Fn() -> ExitState + '_>>;
 }
 
-pub struct ShellArgs {}
-pub struct CommandArgs<'a> {
+#[derive(Clone)]
+pub struct ShellArgs {
+    path: String,
+}
+pub struct CommandArgs {
     input: Vec<String>,
-    shell_args: &'a ShellArgs,
+    shell_args: ShellArgs,
 }
 
 pub struct Echo;
@@ -82,8 +100,20 @@ impl ShellCommand for Echo {
             cmd: ExitCommand::Print(args.input.into_iter().next().unwrap()),
         }
     }
-    fn extract(&self, shell_args: &ShellArgs) -> Option<CommandArgs> {
-        todo!()
+    fn extract<'a>(
+        &'a self,
+        input: &str,
+        shell_args: &'a ShellArgs,
+    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
+        if input != "echo" {
+            return None;
+        }
+        Some(Box::new(|| {
+            self.execute(CommandArgs {
+                input: Vec::new(),
+                shell_args: shell_args.clone(),
+            })
+        }))
     }
 }
 
