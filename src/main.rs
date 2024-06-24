@@ -160,8 +160,9 @@ fn is_valid_program(input: &ShellInput) -> bool {
 }
 
 fn cd_handler(input: ShellInput) -> ShellOutput {
+    let cwd = Path::new(&input.state.cwd);
     let dir = input.input.into_iter().nth(1).unwrap();
-    let path = Path::new(&dir);
+    let path = cwd.join(&dir);
     match path.try_exists() {
         Ok(true) => {
             input.state.cwd = dir;
