@@ -162,7 +162,7 @@ fn is_valid_program(input: &ShellInput) -> bool {
 fn cd_handler(input: ShellInput) -> ShellOutput {
     let cwd = &input.state.cwd;
     let dir = input.input.into_iter().nth(1).unwrap();
-    let path = cwd.join(&dir);
+    let path = cwd.join(&dir).canonicalize().unwrap();
     match path.try_exists() {
         Ok(true) => {
             input.state.cwd = path;
