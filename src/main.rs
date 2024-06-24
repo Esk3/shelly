@@ -106,7 +106,7 @@ fn router(input: &ShellInput) -> Option<ShellHandler> {
 }
 
 fn echo_handler(input: ShellInput) -> ShellOutput {
-    ShellOutput(vec![ShellCommand::Print(input.input.join(" "))])
+    ShellOutput(vec![ShellCommand::Print(input.input[1..].join(" "))])
 }
 
 fn exit_handler(_: ShellInput) -> ShellOutput {
