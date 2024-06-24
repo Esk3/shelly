@@ -160,8 +160,15 @@ fn is_valid_program(input: &ShellInput) -> bool {
 }
 
 fn cd_handler(input: ShellInput) -> ShellOutput {
-    input.state.cwd = input.input.into_iter().nth(1).unwrap();
-    ShellOutput::default()
+    let dir = input.input.into_iter().nth(1).unwrap();
+    if input.state.env_paths.iter().any(|path| path == &dir) {
+        input.state.cwd = dir;
+        ShellOutput::default()
+    } else {
+        ShellOutput(vec![ShellCommand::Print(format!(
+            "cd: {dir}: No such file or directory"
+        ))])
+    }
 }
 fn pwd_handler(input: ShellInput) -> ShellOutput {
     ShellOutput(vec![ShellCommand::Print(input.state.cwd.clone())])
