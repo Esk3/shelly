@@ -4,225 +4,156 @@ use std::io::{self, Write};
 use std::{env, process};
 
 fn main() {
-    let path_env = env::var("PATH").unwrap();
-    let args = ShellArgs::new(path_env);
-    let shell = Shell::new(Commands::default(), args);
-    shell.run();
+    let config = AppConfig::new();
+    let app = App::new(config);
+    app.run();
 }
 
-struct Shell {
-    run: bool,
-    commands: Commands,
-    args: ShellArgs,
+struct App {
+    pub shell_state: ShellState,
 }
-
-impl Shell {
-    pub fn new(commands: Commands, args: ShellArgs) -> Self {
-        Self {
-            run: true,
-            commands,
-            args,
-        }
+impl App {
+    pub fn new(config: AppConfig) -> Self {
+        let shell_state = ShellState::new(config);
+        Self { shell_state }
     }
     pub fn run(mut self) {
         let stdin = io::stdin();
         let mut input = String::new();
-        while self.run {
+        'main: loop {
             print!("$ ");
             io::stdout().flush().unwrap();
             stdin.read_line(&mut input).unwrap();
-
             {
-                let args = self
-                    .commands
-                    .extract_command(input.split_whitespace().collect(), &self.args);
-                let result = match args {
-                    Some(cmd) => cmd(),
-                    None => self.commands.not_found(&input),
+                let input = ShellInput::new(input.clone(), &mut self.shell_state);
+                let handler = router(&input);
+                let handler = match handler {
+                    Some(handler) => handler,
+                    None => Box::new(Self::not_found),
                 };
-                self.run = !result.resolve();
+                let result = handler(input);
+                for cmd in result.0 {
+                    match cmd {
+                        ShellCommand::Exit(_exit_code) => break 'main,
+                        ShellCommand::Print(s) => println!("{s}"),
+                    }
+                }
             }
             input.clear();
         }
     }
-}
-
-pub struct Commands {
-    commands: Vec<Box<dyn ShellCommand>>,
-}
-
-impl Commands {
-    pub fn extract_command<'a>(
-        &'a self,
-        input: Vec<&'a str>,
-        shell_args: &'a ShellArgs,
-    ) -> Option<Box<dyn Fn() -> ExitState + '_>> {
-        self.commands
-            .iter()
-            .find_map(|c| c.extract(input.clone(), shell_args))
-    }
-    pub fn not_found(&self, input: &str) -> ExitState {
-        ExitState {
-            code: ExitCode::Err,
-            cmd: ExitCommand::Print(format!("{}: command not found", input.trim_end())),
-        }
+    pub fn not_found(input: ShellInput) -> ShellOutput {
+        ShellOutput(vec![ShellCommand::Print(format!(
+            "{}: command not found",
+            input.input.join(" ").trim_end()
+        ))])
     }
 }
 
-impl Default for Commands {
-    fn default() -> Self {
+struct AppConfig {
+    path_env: String,
+}
+impl AppConfig {
+    pub fn new() -> Self {
         Self {
-            commands: vec![
-                Box::new(Echo),
-                Box::new(Exit),
-                Box::new(Type),
-                Box::new(RunProgram),
-            ],
+            path_env: env::var("PATH").unwrap(),
         }
     }
 }
-
-type CommandValue<'a> = Option<Box<dyn Fn() -> ExitState + 'a>>;
-pub trait ShellCommand {
-    fn execute(&self, args: CommandArgs) -> ExitState;
-    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue;
+struct ShellState {
+    #[allow(dead_code)]
+    cwd: String,
+    env_paths: Vec<String>,
 }
-
-#[derive(Clone, Debug)]
-pub struct ShellArgs {
-    path: Vec<String>,
-}
-impl ShellArgs {
-    pub fn new(path: String) -> Self {
+impl ShellState {
+    pub fn new(config: AppConfig) -> Self {
         Self {
-            path: path.split(':').map(|s| s.to_string()).collect(),
+            cwd: "".to_string(),
+            env_paths: config.path_env.split(':').map(String::from).collect(),
         }
     }
 }
-#[derive(Debug)]
-pub struct CommandArgs {
+type ShellHandler = Box<dyn Fn(ShellInput) -> ShellOutput>;
+struct ShellInput<'a> {
+    state: &'a mut ShellState,
     input: Vec<String>,
-    shell_args: ShellArgs,
 }
-
-pub struct Echo;
-impl ShellCommand for Echo {
-    fn execute(&self, args: CommandArgs) -> ExitState {
-        ExitState {
-            code: ExitCode::Ok,
-            cmd: ExitCommand::Print(args.input.join(" ")),
-        }
-    }
-    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
-        if input[0] != "echo" {
-            return None;
-        }
-        Some(Box::new(move || {
-            self.execute(CommandArgs {
-                input: input[1..].iter().map(|s| s.to_string()).collect(),
-                shell_args: shell_args.clone(),
-            })
-        }))
-    }
-}
-
-pub struct Exit;
-impl ShellCommand for Exit {
-    fn execute(&self, _args: CommandArgs) -> ExitState {
-        ExitState {
-            code: ExitCode::Ok,
-            cmd: ExitCommand::Exit,
-        }
-    }
-    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
-        match input[0] {
-            "exit" => Some(Box::new(|| {
-                self.execute(CommandArgs {
-                    input: Vec::new(),
-                    shell_args: shell_args.clone(),
-                })
-            })),
-            _ => None,
+impl<'a> ShellInput<'a> {
+    pub fn new(input: String, state: &'a mut ShellState) -> Self {
+        Self {
+            input: input.split_whitespace().map(String::from).collect(),
+            state,
         }
     }
 }
-
-pub struct Type;
-impl ShellCommand for Type {
-    fn execute(&self, args: CommandArgs) -> ExitState {
-        let shell_commands = ["echo", "exit", "type"];
-        if let Some(cmd) = shell_commands
-            .iter()
-            .find(|cmd| *cmd == args.input.first().unwrap())
-        {
-            return ExitState {
-                code: ExitCode::Ok,
-                cmd: ExitCommand::Print(format!("{} is a shell builtin", cmd)),
-            };
-        }
-        if let Some(path) = args
-            .shell_args
-            .path
-            .iter()
-            .map(|path| format!("{}/{}", path, args.input.first().unwrap()))
-            .find(|path| std::fs::metadata(path).is_ok())
-        {
-            return ExitState {
-                code: ExitCode::Ok,
-                cmd: ExitCommand::Print(format!("{} is {}", args.input.first().unwrap(), path)),
-            };
-        }
-        ExitState {
-            code: ExitCode::Err,
-            cmd: ExitCommand::Print(format!("{}: not found", args.input.first().unwrap())),
-        }
-    }
-    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
-        if input[0] != "type" {
-            return None;
-        }
-        Some(Box::new(move || {
-            self.execute(CommandArgs {
-                input: input[1..].iter().map(|s| s.to_string()).collect(),
-                shell_args: shell_args.clone(),
-            })
-        }))
-    }
+struct ShellOutput(Vec<ShellCommand>);
+enum ShellCommand {
+    Print(String),
+    Exit(u32),
 }
 
-pub struct RunProgram;
-impl ShellCommand for RunProgram {
-    fn extract<'a>(&'a self, input: Vec<&'a str>, shell_args: &'a ShellArgs) -> CommandValue {
-        if let Some(_path) = shell_args
-            .path
-            .iter()
-            .map(|path| format!("{}/{}", path, input.first().unwrap()))
-            .find(|path| std::fs::File::open(path).is_ok())
-        {
-            return Some(Box::new(move || {
-                let input = input
-                    .clone()
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>();
-                self.execute(CommandArgs {
-                    input,
-                    shell_args: shell_args.clone(),
-                })
-            }));
-        }
-        None
+fn router(input: &ShellInput) -> Option<ShellHandler> {
+    Some(Box::new(match input.input.first()?.as_str() {
+        "echo" => echo_handler,
+        "exit" => exit_handler,
+        "type" => type_handler,
+        _ if is_valid_program(input) => execute_handler,
+        _ => return None,
+    }))
+}
+
+fn echo_handler(input: ShellInput) -> ShellOutput {
+    ShellOutput(vec![ShellCommand::Print(input.input.join(" "))])
+}
+
+fn exit_handler(_: ShellInput) -> ShellOutput {
+    ShellOutput(vec![ShellCommand::Exit(0)])
+}
+
+fn type_handler(input: ShellInput) -> ShellOutput {
+    let shell_commands = ["echo", "exit", "type"];
+    if let Some(cmd) = shell_commands
+        .iter()
+        .find(|cmd| *cmd == input.input.first().unwrap())
+    {
+        return ShellOutput(vec![ShellCommand::Print(format!(
+            "{} is a shell builtin",
+            cmd
+        ))]);
     }
-    fn execute(&self, args: CommandArgs) -> ExitState {
-        let _output = process::Command::new(args.input.first().unwrap())
-            .args(&args.input[1..])
-            .status()
-            .unwrap();
-        ExitState {
-            code: ExitCode::Ok,
-            cmd: ExitCommand::None,
-        }
+    if let Some(path) = input
+        .state
+        .env_paths
+        .iter()
+        .map(|path| format!("{}/{}", path, input.input.first().unwrap()))
+        .find(|path| std::fs::metadata(path).is_ok())
+    {
+        return ShellOutput(vec![ShellCommand::Print(format!(
+            "{} is {}",
+            input.input.first().unwrap(),
+            path
+        ))]);
     }
+    ShellOutput(vec![ShellCommand::Print(format!(
+        "{}: not found",
+        input.input.first().unwrap()
+    ))])
+}
+
+fn execute_handler(input: ShellInput) -> ShellOutput {
+    let _output = process::Command::new(input.input.first().unwrap())
+        .args(&input.input[1..])
+        .status()
+        .unwrap();
+    ShellOutput(Vec::new())
+}
+fn is_valid_program(input: &ShellInput) -> bool {
+    input
+        .state
+        .env_paths
+        .iter()
+        .map(|path| format!("{}/{}", path, input.input.first().unwrap()))
+        .any(|path| std::fs::File::open(path).is_ok())
 }
 
 pub struct ExitState {
