@@ -68,7 +68,7 @@ struct ShellState {
 impl ShellState {
     pub fn new(config: AppConfig) -> Self {
         Self {
-            cwd: "".to_string(),
+            cwd: "/app".to_string(),
             env_paths: config.path_env.split(':').map(String::from).collect(),
         }
     }
