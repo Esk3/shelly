@@ -133,13 +133,13 @@ fn type_handler(input: ShellInput) -> ShellOutput {
     {
         return ShellOutput(vec![ShellCommand::Print(format!(
             "{} is {}",
-            input.input.first().unwrap(),
+            input.input.get(1).unwrap(),
             path
         ))]);
     }
     ShellOutput(vec![ShellCommand::Print(format!(
         "{}: not found",
-        input.input.first().unwrap()
+        input.input.get(1).unwrap()
     ))])
 }
 
