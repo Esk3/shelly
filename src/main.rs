@@ -161,6 +161,7 @@ fn is_valid_program(input: &ShellInput) -> bool {
 
 fn cd_handler(input: ShellInput) -> ShellOutput {
     let dir = input.input.into_iter().nth(1).unwrap();
+    println!("dir: {dir}. {:?}", input.state.env_paths);
     if input.state.env_paths.iter().any(|path| path == &dir) {
         input.state.cwd = dir;
         ShellOutput::default()
