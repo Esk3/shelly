@@ -128,7 +128,7 @@ fn type_handler(input: ShellInput) -> ShellOutput {
         .state
         .env_paths
         .iter()
-        .map(|path| format!("{}/{}", path, input.input.first().unwrap()))
+        .map(|path| format!("{}/{}", path, input.input.get(1).unwrap()))
         .find(|path| std::fs::metadata(path).is_ok())
     {
         return ShellOutput(vec![ShellCommand::Print(format!(
