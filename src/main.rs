@@ -52,11 +52,13 @@ impl App {
 
 struct AppConfig {
     path_env: String,
+    home_env: String,
 }
 impl AppConfig {
     pub fn new() -> Self {
         Self {
             path_env: env::var("PATH").unwrap(),
+            home_env: env::var("HOME").unwrap(),
         }
     }
 }
@@ -64,12 +66,14 @@ struct ShellState {
     #[allow(dead_code)]
     cwd: PathBuf,
     env_paths: Vec<String>,
+    env_home: String,
 }
 impl ShellState {
     pub fn new(config: AppConfig) -> Self {
         Self {
             cwd: PathBuf::from("/app"),
             env_paths: config.path_env.split(':').map(String::from).collect(),
+            env_home: config.home_env,
         }
     }
 }
@@ -162,6 +166,10 @@ fn is_valid_program(input: &ShellInput) -> bool {
 fn cd_handler(input: ShellInput) -> ShellOutput {
     let cwd = &input.state.cwd;
     let dir = input.input.into_iter().nth(1).unwrap();
+    if dir == "~" {
+        input.state.cwd = ["home", &input.state.env_home].iter().collect();
+        return ShellOutput::default();
+    }
     let Ok(path) = cwd.join(&dir).canonicalize() else {
         return ShellOutput(vec![ShellCommand::Print(format!(
             "cd: {dir}: No such file or directory"
