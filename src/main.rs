@@ -114,7 +114,7 @@ fn exit_handler(_: ShellInput) -> ShellOutput {
 }
 
 fn type_handler(input: ShellInput) -> ShellOutput {
-    let shell_commands = ["echo", "exit", "type"];
+    let shell_commands = ["echo", "exit", "type", "cd", "pwd"];
     if let Some(cmd) = shell_commands
         .iter()
         .find(|cmd| *cmd == input.input.first().unwrap())
