@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 //#[warn(clippy::pedantic)]
 use std::io::{self, Write};
-use std::{env, path::Path, process};
+use std::{env, path::PathBuf, process};
 
 fn main() {
     let config = AppConfig::new();
@@ -62,13 +62,13 @@ impl AppConfig {
 }
 struct ShellState {
     #[allow(dead_code)]
-    cwd: String,
+    cwd: PathBuf,
     env_paths: Vec<String>,
 }
 impl ShellState {
     pub fn new(config: AppConfig) -> Self {
         Self {
-            cwd: "/app".to_string(),
+            cwd: PathBuf::from("/app"),
             env_paths: config.path_env.split(':').map(String::from).collect(),
         }
     }
@@ -160,12 +160,12 @@ fn is_valid_program(input: &ShellInput) -> bool {
 }
 
 fn cd_handler(input: ShellInput) -> ShellOutput {
-    let cwd = Path::new(&input.state.cwd);
+    let cwd = &input.state.cwd;
     let dir = input.input.into_iter().nth(1).unwrap();
     let path = cwd.join(&dir);
     match path.try_exists() {
         Ok(true) => {
-            input.state.cwd = dir;
+            input.state.cwd = path;
             ShellOutput::default()
         }
         _ => ShellOutput(vec![ShellCommand::Print(format!(
@@ -174,7 +174,9 @@ fn cd_handler(input: ShellInput) -> ShellOutput {
     }
 }
 fn pwd_handler(input: ShellInput) -> ShellOutput {
-    ShellOutput(vec![ShellCommand::Print(input.state.cwd.clone())])
+    ShellOutput(vec![ShellCommand::Print(
+        input.state.cwd.to_str().unwrap().to_string(),
+    )])
 }
 
 pub struct ExitState {
