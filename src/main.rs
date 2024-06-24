@@ -86,6 +86,7 @@ impl<'a> ShellInput<'a> {
         }
     }
 }
+#[derive(Default)]
 struct ShellOutput(Vec<ShellCommand>);
 enum ShellCommand {
     Print(String),
@@ -97,6 +98,7 @@ fn router(input: &ShellInput) -> Option<ShellHandler> {
         "echo" => echo_handler,
         "exit" => exit_handler,
         "type" => type_handler,
+        "cd" => cd_handler,
         _ if is_valid_program(input) => execute_handler,
         _ => return None,
     }))
@@ -154,6 +156,11 @@ fn is_valid_program(input: &ShellInput) -> bool {
         .iter()
         .map(|path| format!("{}/{}", path, input.input.first().unwrap()))
         .any(|path| std::fs::File::open(path).is_ok())
+}
+
+fn cd_handler(input: ShellInput) -> ShellOutput {
+    input.state.cwd = input.input.into_iter().nth(1).unwrap();
+    ShellOutput::default()
 }
 
 pub struct ExitState {
