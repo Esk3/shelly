@@ -99,6 +99,7 @@ fn router(input: &ShellInput) -> Option<ShellHandler> {
         "exit" => exit_handler,
         "type" => type_handler,
         "cd" => cd_handler,
+        "pwd" => pwd_handler,
         _ if is_valid_program(input) => execute_handler,
         _ => return None,
     }))
@@ -161,6 +162,9 @@ fn is_valid_program(input: &ShellInput) -> bool {
 fn cd_handler(input: ShellInput) -> ShellOutput {
     input.state.cwd = input.input.into_iter().nth(1).unwrap();
     ShellOutput::default()
+}
+fn pwd_handler(input: ShellInput) -> ShellOutput {
+    ShellOutput(vec![ShellCommand::Print(input.state.cwd.clone())])
 }
 
 pub struct ExitState {
