@@ -117,7 +117,7 @@ fn type_handler(input: ShellInput) -> ShellOutput {
     let shell_commands = ["echo", "exit", "type", "cd", "pwd"];
     if let Some(cmd) = shell_commands
         .iter()
-        .find(|cmd| *cmd == input.input.first().unwrap())
+        .find(|cmd| *cmd == input.input.get(1).unwrap())
     {
         return ShellOutput(vec![ShellCommand::Print(format!(
             "{} is a shell builtin",
