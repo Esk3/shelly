@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 //#[warn(clippy::pedantic)]
 use std::io::{self, Write};
-use std::{env, process};
+use std::{env, path::Path, process};
 
 fn main() {
     let config = AppConfig::new();
@@ -161,14 +161,15 @@ fn is_valid_program(input: &ShellInput) -> bool {
 
 fn cd_handler(input: ShellInput) -> ShellOutput {
     let dir = input.input.into_iter().nth(1).unwrap();
-    println!("dir: {dir}. {:?}", input.state.env_paths);
-    if input.state.env_paths.iter().any(|path| path == &dir) {
-        input.state.cwd = dir;
-        ShellOutput::default()
-    } else {
-        ShellOutput(vec![ShellCommand::Print(format!(
+    let path = Path::new(&dir);
+    match path.try_exists() {
+        Ok(true) => {
+            input.state.cwd = dir;
+            ShellOutput::default()
+        }
+        _ => ShellOutput(vec![ShellCommand::Print(format!(
             "cd: {dir}: No such file or directory"
-        ))])
+        ))]),
     }
 }
 fn pwd_handler(input: ShellInput) -> ShellOutput {
