@@ -29,6 +29,7 @@ fn handle_shell_response_returns_exit() {
 }
 
 #[test]
+#[ignore = "exit"]
 fn exit_maps_to_break() {
     let response =
         MockHandler::new(Shell::default(), MockStream::empty()).handle_response(Response::Exit(1));

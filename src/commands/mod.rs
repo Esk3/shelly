@@ -8,6 +8,7 @@ use crate::shell::State;
 pub enum Error {}
 
 pub mod cd;
+pub mod cmd_type;
 pub mod echo;
 pub mod exit;
 pub mod pwd;
@@ -56,6 +57,10 @@ impl ShellCommands {
             .find(|cmd| cmd.name().to_lowercase() == request.command.to_lowercase())
             .ok_or(RouterError::NotFound(request.command.clone()))
     }
+
+    fn all_names(&self) -> Vec<&'static str> {
+        self.0.iter().map(|cmd| cmd.name()).collect()
+    }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -71,6 +76,8 @@ impl Default for ShellCommands {
             .add(pwd::Pwd)
             .add(echo::Echo)
             .add(exit::Exit);
+        let all = this.all_names();
+        this.add(cmd_type::CmdType::new(all));
         this
     }
 }

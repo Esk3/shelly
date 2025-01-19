@@ -32,3 +32,18 @@ fn router_finds_command_with_same_name() {
         assert_eq!(handler.name(), cmd);
     });
 }
+
+#[test]
+fn returns_no_names_when_empty() {
+    tester(|router| assert!(router.all_names().is_empty()));
+}
+
+#[test]
+fn returns_names_of_commands_added() {
+    tester(|mut router| {
+        router.add(cd::Cd);
+        assert_eq!(router.all_names(), ["cd"]);
+        router.add(pwd::Pwd);
+        assert_eq!(router.all_names(), ["cd", "pwd"]);
+    });
+}
