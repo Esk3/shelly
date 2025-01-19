@@ -15,5 +15,4 @@ fn main() {
         StdIoStream::new(std::io::stdin(), std::io::stdout()),
     )
     .run();
-    todo!();
 }

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
     io::{InputBytes, InputString, Io, StdIoStream, Stream},
-    shell::{Request, Shell},
+    shell::{self, Request, Shell},
 };
 
 #[cfg(test)]
@@ -27,15 +27,40 @@ where
     }
 
     pub fn run(mut self) {
-        while let RequestResult::Continue = self.handle_command() {
-            // loop
+        loop {
+            self.print_newline().unwrap();
+            if let RequestResult::Break = self.handle_command() {
+                break;
+            }
+            unsafe {
+                self.io.inner().write_all(b"\r\n").unwrap();
+                self.io.inner().flush().unwrap();
+            }
         }
     }
 
     fn handle_command(&mut self) -> RequestResult {
-        self.print_newline().unwrap();
         let input = self.read_input().unwrap();
-        let response = self.handle_input(input).unwrap();
+
+        let response = match self.handle_input(input) {
+            Ok(res) => res,
+            Err(err) => match err {
+                InputError::Empty => return RequestResult::Continue,
+                InputError::Command(handler_error) => match handler_error {
+                    shell::HandlerError::Router(router_error) => {
+                        unsafe {
+                            self.io
+                                .inner()
+                                .write_all(router_error.to_string().as_bytes())
+                                .unwrap();
+                        }
+                        unsafe { self.io.inner().flush().unwrap() }
+                        return RequestResult::Continue;
+                    }
+                    shell::HandlerError::Command(error) => todo!(),
+                },
+            },
+        };
         let response = Self::handle_shell_response(response);
         self.handle_response(response)
     }
@@ -44,7 +69,11 @@ where
         let text = self.shell.new_line();
         // Safety
         // writing directly to stream at the start of a new line is fine as long as we don't do a read
-        unsafe { self.io.inner().write(text.as_bytes()) }
+        unsafe {
+            let bytes = self.io.inner().write(text.as_bytes())?;
+            self.io.inner().flush()?;
+            Ok(bytes)
+        }
     }
 
     fn read_input(&mut self) -> std::io::Result<InputBytes> {
@@ -52,11 +81,14 @@ where
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn handle_input(&mut self, input: InputBytes) -> Result<crate::shell::Response, ()> {
+    fn handle_input(&mut self, input: InputBytes) -> Result<crate::shell::Response, InputError> {
         let s = InputString::try_from(input).unwrap().value;
         let mut iter = s.split_whitespace().map(std::string::ToString::to_string);
-        let request = Request::new(iter.next().unwrap(), iter.collect::<Vec<_>>());
-        Ok(self.shell.handle_request(request).unwrap())
+        let request = Request::new(
+            iter.next().ok_or(InputError::Empty)?,
+            iter.collect::<Vec<_>>(),
+        );
+        Ok(self.shell.handle_request(request)?)
     }
 
     fn handle_shell_response(response: crate::shell::Response) -> Response {
@@ -78,7 +110,9 @@ where
                 unsafe { self.io.inner().flush() }.unwrap();
                 RequestResult::Continue
             }
-            Response::Exit(_) => RequestResult::Break,
+            Response::Exit(code) => {
+                std::process::exit(code.try_into().unwrap());
+            }
         }
     }
 }
@@ -93,4 +127,12 @@ enum Response {
 enum RequestResult {
     Continue,
     Break,
+}
+
+#[derive(thiserror::Error, Debug)]
+enum InputError {
+    #[error("input was empty")]
+    Empty,
+    #[error("command error: {0}")]
+    Command(#[from] shell::HandlerError),
 }

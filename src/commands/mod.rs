@@ -60,7 +60,7 @@ impl ShellCommands {
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum RouterError {
-    #[error("command not found: {0}")]
+    #[error("{0}: command not found")]
     NotFound(String),
 }
 
