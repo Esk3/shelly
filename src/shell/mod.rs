@@ -126,14 +126,21 @@ impl Response {
 #[derive(Debug)]
 pub struct State {
     pub cwd: std::path::PathBuf,
+    pub path: Vec<String>,
     pub env_data: EnvData,
 }
 
 impl State {
     pub fn new(cwd: impl Into<std::path::PathBuf>, env_data: EnvData) -> Self {
+        let path = env_data
+            .path_env
+            .split(':')
+            .map(std::string::ToString::to_string)
+            .collect();
         Self {
             cwd: cwd.into(),
             env_data,
+            path,
         }
     }
     #[cfg(test)]

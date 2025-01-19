@@ -30,13 +30,13 @@ fn handle_command_returns_found_if_is_builtin_is_true() {
 
     for cmd in builtin {
         assert_eq!(
-            command.handle_command(cmd.to_string()),
+            command.handle_command(cmd.to_string(), &[]),
             Response::new(cmd, Kind::Builtin)
         );
     }
     for cmd in not_found {
         assert_eq!(
-            command.handle_command(cmd.to_string()),
+            command.handle_command(cmd.to_string(), &[]),
             Response::new(cmd, Kind::NotFound)
         );
     }
