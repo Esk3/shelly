@@ -45,23 +45,30 @@ fn handle_command_returns_found_if_is_builtin_is_true() {
 #[test]
 fn call_returns_response() {
     let builtin = ["abc", "xyz", "123"];
-    let not_found = ["something", "else"];
+    let not_found = ["something", "else"].map(|s| s.as_bytes().to_vec());
     let mut command = CmdType::new(builtin);
+    let builtin = ["abc", "xyz", "123"].map(|s| s.as_bytes().to_vec());
 
     for cmd in builtin {
         let message = command
-            .call(Request::new("type", [cmd.to_string()]), &State::dummy())
+            .call(ByteRequest::new(b"type", [cmd.clone()]), &State::dummy())
             .unwrap()
             .message
             .unwrap();
-        assert_eq!(message, format!("{cmd} is a shell builtin"));
+        assert_eq!(
+            message,
+            format!("{} is a shell builtin", String::from_utf8(cmd).unwrap())
+        );
     }
     for cmd in not_found {
         let message = command
-            .call(Request::new("type", [cmd.to_string()]), &State::dummy())
+            .call(ByteRequest::new(b"type", [cmd.clone()]), &State::dummy())
             .unwrap()
             .message
             .unwrap();
-        assert_eq!(message, format!("{cmd}: not found"));
+        assert_eq!(
+            message,
+            format!("{}: not found", String::from_utf8(cmd).unwrap())
+        );
     }
 }

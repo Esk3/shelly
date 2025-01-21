@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    io::{InputBytes, InputString, Io, StdIoStream, Stream},
-    shell::{self, Request, Shell},
+    io::{InputBytes, Io, StdIoStream, Stream},
+    shell::{self, Shell},
 };
 
 #[cfg(test)]
@@ -32,10 +32,6 @@ where
             if let RequestResult::Break = self.handle_command() {
                 break;
             }
-            unsafe {
-                self.io.inner().write_all(b"\r\n").unwrap();
-                self.io.inner().flush().unwrap();
-            }
         }
     }
 
@@ -53,12 +49,17 @@ where
                                 .inner()
                                 .write_all(router_error.to_string().as_bytes())
                                 .unwrap();
+                            self.io.inner().flush().unwrap();
                         }
-                        unsafe { self.io.inner().flush().unwrap() }
+                        unsafe {
+                            self.io.inner().write_all(b"\r\n").unwrap();
+                            self.io.inner().flush().unwrap();
+                        }
                         return RequestResult::Continue;
                     }
-                    shell::HandlerError::Command(error) => todo!(),
+                    shell::HandlerError::Command(error) => todo!("{error}"),
                 },
+                InputError::Utf8(_) => todo!(),
             },
         };
         let response = Self::handle_shell_response(response);
@@ -82,18 +83,13 @@ where
 
     #[allow(clippy::unnecessary_wraps)]
     fn handle_input(&mut self, input: InputBytes) -> Result<crate::shell::Response, InputError> {
-        let s = InputString::try_from(input).unwrap().value;
-        let mut iter = s.split_whitespace().map(std::string::ToString::to_string);
-        let request = Request::new(
-            iter.next().ok_or(InputError::Empty)?,
-            iter.collect::<Vec<_>>(),
-        );
+        let request = input.into();
         Ok(self.shell.handle_request(request)?)
     }
 
     fn handle_shell_response(response: crate::shell::Response) -> Response {
         match response {
-            crate::shell::Response::None => todo!(),
+            crate::shell::Response::None => Response::None,
             crate::shell::Response::Message(s) => Response::Write(s),
             crate::shell::Response::Exit(exit_code) => Response::Exit(exit_code.into()),
         }
@@ -106,33 +102,43 @@ where
                 // Safety
                 // writing response directly to stream is ok but should be replaced by proper
                 // method
-                unsafe { self.io.inner().write_all(s.as_bytes()) }.unwrap();
-                unsafe { self.io.inner().flush() }.unwrap();
+                unsafe {
+                    self.io.inner().write_all(s.as_bytes()).unwrap();
+                    self.io.inner().flush().unwrap();
+                };
+                unsafe {
+                    self.io.inner().write_all(b"\r\n").unwrap();
+                    self.io.inner().flush().unwrap();
+                }
                 RequestResult::Continue
             }
             Response::Exit(code) => {
                 std::process::exit(code.try_into().unwrap());
             }
+            Response::None => RequestResult::Continue,
         }
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum Response {
+    None,
     Write(String),
     Exit(usize),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum RequestResult {
+pub enum RequestResult {
     Continue,
     Break,
 }
 
-#[derive(thiserror::Error, Debug)]
-enum InputError {
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum InputError {
     #[error("input was empty")]
     Empty,
     #[error("command error: {0}")]
     Command(#[from] shell::HandlerError),
+    #[error("invalid utf8 error: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
 }

@@ -1,6 +1,9 @@
-use crate::exit::ExitCode;
+use crate::{
+    exit::ExitCode,
+    shell::{ByteRequest, TextRequest},
+};
 
-use super::{Command, Error, Event, Request, Response, State};
+use super::{Command, Error, Event, Response, State};
 
 #[cfg(test)]
 mod tests;
@@ -9,7 +12,7 @@ mod tests;
 pub struct Exit;
 
 impl Command for Exit {
-    type Request = Request;
+    type Request = ByteRequest;
     type Response = Response;
     type Error = Error;
     type State = State;
@@ -23,6 +26,7 @@ impl Command for Exit {
         request: Self::Request,
         _: &Self::State,
     ) -> Result<Self::Response, Self::Error> {
+        let request = TextRequest::try_from(request).unwrap();
         let code = request.args.first().map_or(0, |code| code.parse().unwrap());
         let code = ExitCode::from(code);
         Ok(Response::new_event(Event::Exit(code)))

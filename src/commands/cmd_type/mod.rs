@@ -1,6 +1,8 @@
 use std::{fmt::Display, os::linux::fs::MetadataExt, path::PathBuf};
 
-use super::{Command, Error, Request, State};
+use crate::shell::{ByteRequest, TextRequest};
+
+use super::{Command, Error, State};
 
 #[cfg(test)]
 mod tests;
@@ -18,7 +20,8 @@ impl CmdType {
         self.0.contains(&cmd) || cmd == self.name()
     }
 
-    fn is_executable(command: &str, path: &[String]) -> Option<String> {
+    #[must_use]
+    pub fn is_executable(command: &str, path: &[String]) -> Option<String> {
         let is_executable = |metadata: &std::fs::Metadata| metadata.st_mode() & 0o111 != 0;
         path.iter()
             .map(|path| PathBuf::from(path).join(command))
@@ -42,7 +45,7 @@ impl CmdType {
 }
 
 impl Command for CmdType {
-    type Request = Request;
+    type Request = ByteRequest;
     type Response = super::Response;
     type Error = Error;
     type State = State;
@@ -56,6 +59,7 @@ impl Command for CmdType {
         request: Self::Request,
         state: &Self::State,
     ) -> Result<Self::Response, Self::Error> {
+        let request = TextRequest::try_from(request).unwrap();
         let res = self.handle_command(request.args.first().unwrap().clone(), &state.path);
         Ok(super::Response::new_message(res.to_string()))
     }

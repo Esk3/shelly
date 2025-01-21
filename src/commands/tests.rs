@@ -1,3 +1,5 @@
+use crate::shell::Request;
+
 use super::*;
 
 fn tester<F, T>(f: F) -> T
@@ -13,7 +15,7 @@ fn route_empty_returns_not_found() {
     let request = Request::new(cmd, []);
     tester(|mut router| {
         let err = router.find_handler(&request).unwrap_err();
-        assert_eq!(err, RouterError::NotFound(cmd.to_string()));
+        assert_eq!(err, RouterError::NotFound(cmd.into()));
     });
 }
 

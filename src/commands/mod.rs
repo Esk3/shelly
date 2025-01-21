@@ -1,10 +1,13 @@
 use std::fmt::Debug;
+use std::path::PathBuf;
 
-use crate::{exit::ExitCode, shell::Request};
+use cmd_type::CmdType;
 
-use crate::shell::State;
+use crate::exit::ExitCode;
 
-#[derive(thiserror::Error, Debug)]
+use crate::shell::{ByteRequest, State};
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {}
 
 pub mod cd;
@@ -31,7 +34,7 @@ pub trait Command: Debug {
 }
 
 pub type ShellCommand =
-    Box<dyn Command<Request = Request, Response = Response, Error = Error, State = State>>;
+    Box<dyn Command<Request = ByteRequest, Response = Response, Error = Error, State = State>>;
 
 pub struct ShellCommands(Vec<ShellCommand>);
 
@@ -42,20 +45,28 @@ impl ShellCommands {
     }
     pub fn add<C>(&mut self, command: C) -> &mut Self
     where
-        C: Command<Request = Request, Response = Response, Error = Error, State = State> + 'static,
+        C: Command<Request = ByteRequest, Response = Response, Error = Error, State = State>
+            + 'static,
     {
         self.0.push(Box::new(command));
         self
     }
 
-    /// # Errors
-    ///
-    /// This function will return an error if handler with name of command is not found
-    pub fn find_handler(&mut self, request: &Request) -> Result<&mut ShellCommand, RouterError> {
+    pub fn find_handler(
+        &mut self,
+        request: &ByteRequest,
+    ) -> Result<&mut ShellCommand, RouterError> {
         self.0
             .iter_mut()
-            .find(|cmd| cmd.name().to_lowercase() == request.command.to_lowercase())
+            .find(|cmd| {
+                cmd.name().to_lowercase().as_bytes() == request.command.to_ascii_lowercase()
+            })
             .ok_or(RouterError::NotFound(request.command.clone()))
+    }
+
+    #[must_use]
+    pub fn find_executable_path(command: &str, path: &[String]) -> Option<String> {
+        CmdType::is_executable(command, path)
     }
 
     fn all_names(&self) -> Vec<&'static str> {
@@ -65,8 +76,8 @@ impl ShellCommands {
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum RouterError {
-    #[error("{0}: command not found")]
-    NotFound(String),
+    #[error("{}: command not found", String::from_utf8(.0.clone()).unwrap())]
+    NotFound(Vec<u8>),
 }
 
 impl Default for ShellCommands {
@@ -112,8 +123,7 @@ impl Response {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Event {
-    ChangeCwd(String),
-    SetCwd(String),
+    ChangeCwd(PathBuf),
     Exit(ExitCode),
 }
 

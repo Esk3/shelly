@@ -1,8 +1,16 @@
 use std::{
     fmt::Debug,
     io::{BufRead, BufReader},
-    string::FromUtf8Error,
 };
+
+pub use input::{Input, InputBytes, InputString};
+pub use stdio::StdIoStream;
+
+pub use parser::Escaper;
+
+pub mod input;
+mod parser;
+pub mod stdio;
 
 #[cfg(test)]
 pub(crate) mod tests;
@@ -45,67 +53,4 @@ where
     }
 }
 
-pub struct Input<T> {
-    pub value: T,
-    pub bytes_read: usize,
-}
-
-impl<T> Input<T> {
-    pub fn new(value: impl Into<T>, bytes_read: usize) -> Self {
-        Self {
-            value: value.into(),
-            bytes_read,
-        }
-    }
-}
-
-pub type InputBytes = Input<Vec<u8>>;
-pub type InputString = Input<String>;
-
-impl InputString {
-    #[must_use]
-    pub fn new_string(string: String, bytes_read: usize) -> Self {
-        Self::new(string, bytes_read)
-    }
-}
-
-impl TryFrom<InputBytes> for InputString {
-    type Error = FromUtf8Error;
-
-    fn try_from(value: InputBytes) -> Result<Self, Self::Error> {
-        let string = String::from_utf8(value.value)?;
-        Ok(Self::new(string, value.bytes_read))
-    }
-}
-
 pub trait Stream: std::io::Read + std::io::Write {}
-
-#[derive(Debug)]
-pub struct StdIoStream {
-    stdin: std::io::Stdin,
-    stdout: std::io::Stdout,
-}
-
-impl StdIoStream {
-    #[must_use]
-    pub fn new(stdin: std::io::Stdin, stdout: std::io::Stdout) -> Self {
-        Self { stdin, stdout }
-    }
-}
-
-impl Stream for StdIoStream {}
-
-impl std::io::Read for StdIoStream {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.stdin.read(buf)
-    }
-}
-impl std::io::Write for StdIoStream {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.stdout.write(buf)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.stdout.flush()
-    }
-}

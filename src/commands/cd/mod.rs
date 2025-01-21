@@ -1,6 +1,9 @@
-use crate::commands::Event;
+use crate::{
+    commands::Event,
+    shell::{ByteRequest, TextRequest},
+};
 
-use super::{Command, Error, Request, Response, State};
+use super::{Command, Error, Response, State};
 
 #[cfg(test)]
 mod tests;
@@ -9,7 +12,7 @@ mod tests;
 pub struct Cd;
 
 impl Command for Cd {
-    type Request = Request;
+    type Request = ByteRequest;
     type Response = Response;
     type Error = Error;
     type State = State;
@@ -23,12 +26,9 @@ impl Command for Cd {
         request: Self::Request,
         _: &Self::State,
     ) -> Result<Self::Response, Self::Error> {
+        let request = TextRequest::try_from(request).unwrap();
         let arg = request.args[0].clone();
-        let event = if arg.starts_with('/') {
-            Event::SetCwd(arg)
-        } else {
-            Event::ChangeCwd(arg)
-        };
+        let event = Event::ChangeCwd(arg.into());
         Ok(Self::Response {
             message: None,
             event: Some(vec![event]),

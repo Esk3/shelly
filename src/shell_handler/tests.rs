@@ -67,3 +67,17 @@ fn handler_writes() {
         assert_eq!(stream, arg.as_bytes());
     }
 }
+
+#[test]
+fn returns_none_on_none() {
+    let res = MockHandler::handle_shell_response(crate::shell::Response::None);
+    assert_eq!(res, Response::None);
+}
+
+#[test]
+fn does_not_write_to_stream_on_none() {
+    let mut stream = MockStream::empty();
+    let res = Handler::new(Shell::default(), &mut stream).handle_response(Response::None);
+    assert_eq!(res, RequestResult::Continue);
+    assert!(stream.is_empty());
+}

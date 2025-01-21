@@ -24,5 +24,5 @@ fn returns_string() {
         .unwrap()
         .message
         .unwrap();
-    assert_eq!(dir, "/home/dummy");
+    assert_eq!(dir, "/home/dummy/dir");
 }

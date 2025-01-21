@@ -18,14 +18,11 @@ where
 
 #[test]
 fn cd_returns_change_dir_event_on_relative_path() {
-    let event =
-        test_event(|mut cd| cd.call(Request::new("cd", ["./abc".to_string()]), &State::dummy()));
-    assert_eq!(event, [Event::ChangeCwd("./abc".to_string())]);
-}
-
-#[test]
-fn cd_returns_set_dir_event_on_absolute_path() {
-    let event =
-        test_event(|mut cd| cd.call(Request::new("cd", ["/abc".to_string()]), &State::dummy()));
-    assert_eq!(event, [Event::SetCwd("/abc".to_string())]);
+    let event = test_event(|mut cd| {
+        cd.call(
+            ByteRequest::new(b"cd", [b"./abc".to_vec()]),
+            &State::dummy(),
+        )
+    });
+    assert_eq!(event, [Event::ChangeCwd("./abc".into())]);
 }

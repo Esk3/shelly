@@ -5,7 +5,7 @@ mod tests;
 pub struct Pwd;
 
 impl super::Command for Pwd {
-    type Request = super::Request;
+    type Request = super::ByteRequest;
     type Response = super::Response;
     type Error = super::Error;
     type State = super::State;

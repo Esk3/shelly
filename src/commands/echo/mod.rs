@@ -1,4 +1,6 @@
-use super::{Command, Error, Request, Response, State};
+use crate::shell::{ByteRequest, TextRequest};
+
+use super::{Command, Error, Response, State};
 
 #[cfg(test)]
 mod tests;
@@ -7,7 +9,7 @@ mod tests;
 pub struct Echo;
 
 impl Command for Echo {
-    type Request = Request;
+    type Request = ByteRequest;
     type Response = Response;
     type Error = Error;
     type State = State;
@@ -21,7 +23,8 @@ impl Command for Echo {
         request: Self::Request,
         _: &Self::State,
     ) -> Result<Self::Response, Self::Error> {
-        let echo = request.args.first().unwrap().clone();
+        let request = TextRequest::try_from(request).unwrap();
+        let echo = request.args.join(" ");
 
         Ok(Response::new_message(echo))
     }
