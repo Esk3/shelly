@@ -5,11 +5,13 @@ use shell_starter_rust::{
     shell::{EnvData, Shell, State},
     shell_handler::Handler,
 };
+use shell_starter_rust::{io::Terminal, text::AutoComplete};
 
 fn main() {
+    let dict = vec!["echo", "type", "exit"];
     Handler::new(
         Shell::new(State::new(EnvData::env()), ShellCommands::default()),
-        StdIoStream::new(std::io::stdin(), std::io::stdout()),
+        Terminal::create(AutoComplete::new(dict)).unwrap(),
     )
     .run();
 }

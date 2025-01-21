@@ -7,10 +7,12 @@ pub use input::{Input, InputBytes, InputString};
 pub use stdio::StdIoStream;
 
 pub use parser::Escaper;
+pub use terminal::Terminal;
 
 pub mod input;
 mod parser;
 pub mod stdio;
+mod terminal;
 
 #[cfg(test)]
 pub(crate) mod tests;

@@ -7,3 +7,4 @@ pub mod exit;
 pub mod io;
 pub mod shell;
 pub mod shell_handler;
+pub mod text;

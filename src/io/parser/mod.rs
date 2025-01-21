@@ -22,9 +22,8 @@ impl Iterator for Escaper {
             if byte.is_ascii_whitespace() {
                 if arg.is_empty() {
                     continue;
-                } else {
-                    break;
                 }
+                break;
             }
             if byte == b'\'' {
                 arg.extend(SingleQuote(&mut self.input).next().unwrap());
