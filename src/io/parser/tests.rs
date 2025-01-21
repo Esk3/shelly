@@ -18,3 +18,13 @@ fn handles_multiple_whitespace() {
     let result = Escaper::new(arg).collect::<Vec<_>>();
     assert_eq!(result, [b"hello", b"world"]);
 }
+
+#[test]
+#[ignore = "todo"]
+fn backslash_escaped_quote_does_not_end_string() {
+    let arg = br#"echo "hello wo \"ld"#;
+    let result = Escaper::new(arg)
+        .map(|s| String::from_utf8(s).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(result, ["echo", r#"hello wo \"ld"#]);
+}

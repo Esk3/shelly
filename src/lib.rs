@@ -4,6 +4,7 @@
 
 pub mod commands;
 pub mod exit;
+pub mod fs;
 pub mod io;
 pub mod shell;
 pub mod shell_handler;

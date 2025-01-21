@@ -53,7 +53,7 @@ fn handle_set_cwd_event_sets_cwd_state() {
 #[test]
 fn handle_events_handles_set_cwd() {
     tester(|mut shell| {
-        let cwd = ["abc", "xyz", "hello_world"];
+        let cwd = ["/abc", "/xyz", "/hello_world"];
         for cwd in cwd {
             shell
                 .handle_events(Some([Event::ChangeCwd(cwd.into())].to_vec()))
