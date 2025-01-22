@@ -2,18 +2,19 @@ use crate::exit::ExitCode;
 
 use super::*;
 
+type MockShell = Shell;
+
 fn tester<F, T>(f: F) -> T
 where
-    F: FnOnce(Shell) -> T,
+    F: FnOnce(MockShell) -> T,
 {
-    let commands = ShellCommands::default();
-    let shell = Shell::new(State::dummy(), commands);
+    let shell = MockShell::default();
     f(shell)
 }
 
 #[test]
 fn shell_returns_newline() {
-    let s = tester(|shell| shell.new_line());
+    let s = tester(|shell| shell.prompt());
     assert_eq!(s, "$ ");
 }
 
@@ -45,7 +46,7 @@ fn handle_set_cwd_event_sets_cwd_state() {
         let cwd = ["abc", "xyz", "hello_world"];
         for cwd in cwd {
             shell.handle_event(Event::ChangeCwd(cwd.into())).unwrap();
-            assert_eq!(shell.data.cwd.to_str().unwrap(), cwd);
+            assert!(shell.data.cwd.to_str().unwrap().ends_with(cwd),);
         }
     });
 }

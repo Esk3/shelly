@@ -23,6 +23,7 @@ impl StdOutEvents {
     pub fn new(stdout: termion::raw::RawTerminal<std::io::Stdout>) -> Self {
         Self { stdout }
     }
+
     pub fn stdout() -> std::io::Result<Self> {
         std::io::stdout().try_into()
     }
@@ -31,17 +32,24 @@ impl StdOutEvents {
 impl OutputEvents for StdOutEvents {
     fn output(&mut self, output: Event) -> std::io::Result<()> {
         match output {
-            Event::WriteBack(buf) => {
-                // TODO: test newline
-                self.stdout.write_all(buf)
-            }
+            Event::WriteBack(buf) => self.stdout.write_all(buf),
             Event::WriteStart(buf) => {
                 let (_, y) = self.stdout.cursor_pos()?;
-                write!(self.stdout, "{}", termion::cursor::Goto(1, y))?;
+                write!(
+                    self.stdout,
+                    "{}{}",
+                    termion::cursor::Goto(1, y),
+                    termion::clear::UntilNewline
+                )?;
                 self.stdout.write_all(buf)
             }
             Event::ClearChar(amount) => {
-                write!(self.stdout, "{}", termion::cursor::Left(amount))
+                write!(
+                    self.stdout,
+                    "{}{}",
+                    termion::cursor::Left(amount),
+                    termion::clear::UntilNewline
+                )
             }
         }?;
         self.stdout.flush()

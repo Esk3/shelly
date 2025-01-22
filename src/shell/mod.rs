@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use crate::commands::{self, Event, RouterError, ShellCommands};
+use crate::{
+    commands::{self, Event, RouterError, ShellCommands},
+    fs::FileSystem,
+};
 
 pub use data::{EnvData, State};
 pub use request::{ByteRequest, Request, TextRequest};
@@ -41,8 +44,8 @@ impl Shell {
             Err(err) => match err {
                 RouterError::NotFound(_) => {
                     let request = TextRequest::try_from(request).unwrap();
-                    if let Some(_path) =
-                        ShellCommands::find_executable_path(&request.command, &self.data.path)
+                    if let Some(_path) = self.data.fs.find_file_in_default_path(&request.command)
+                    //ShellCommands::find_executable_path(&request.command, &self.data.path)
                     {
                         let res = std::process::Command::new(request.command)
                             .args(request.args)
@@ -58,7 +61,7 @@ impl Shell {
     }
 
     #[must_use]
-    pub fn new_line(&self) -> String {
+    pub fn prompt(&self) -> String {
         "$ ".to_string()
     }
 
@@ -98,16 +101,21 @@ impl Shell {
     fn handle_event(&mut self, event: Event) -> Result<Response, EventError> {
         let res = match event {
             Event::ChangeCwd(input_path) => {
-                let path = self
-                    .data
-                    .cwd
-                    .join(&input_path)
-                    .canonicalize()
-                    .map_err(|_| EventError::InvalidPath(input_path.clone()))?;
-                if !std::fs::metadata(&path).unwrap().is_dir() {
+                let new_path = self.data.cwd.join(&input_path);
+                let new_path = self.data.fs.canonicalize(new_path).unwrap();
+                //let path = self
+                //    .data
+                //    .cwd
+                //    .join(&input_path)
+                //.canonicalize()
+                //.map_err(|_| EventError::InvalidPath(input_path.clone()))?;
+                if self.data.fs.find_dir(&new_path).is_none() {
                     return Err(EventError::InvalidPath(input_path));
                 }
-                self.data.cwd = path;
+                //if !std::fs::metadata(&path).unwrap().is_dir() {
+                //    return Err(EventError::InvalidPath(input_path));
+                //}
+                self.data.cwd = new_path;
                 Response::None
             }
             Event::Exit(exit_code) => Response::Exit(exit_code),
@@ -122,6 +130,24 @@ impl Default for Shell {
         Self {
             data: State::dummy(),
             commands: ShellCommands::default(),
+            //fs: crate::fs::tests::MockFs::new(
+            //    ["/abc/xyz"]
+            //        .into_iter()
+            //        .map(std::convert::Into::into)
+            //        .collect(),
+            //    [
+            //        "/abc/",
+            //        "/xyz",
+            //        "/hello_world",
+            //        "/home/other",
+            //        "/home/dummy/dir/abc",
+            //        "/home/dummy/dir/abc/xyz",
+            //        "/home/dummy/dir/abc/xyz/hello_world",
+            //    ]
+            //    .into_iter()
+            //    .map(std::convert::Into::into)
+            //    .collect(),
+            //),
         }
     }
 }

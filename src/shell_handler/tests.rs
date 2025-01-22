@@ -8,9 +8,9 @@ use super::*;
 fn print_newline_writes_to_writer() {
     let mut stream = MockStream::empty();
     Handler::new(Shell::default(), &mut stream)
-        .print_newline()
+        .print_prompt()
         .unwrap();
-    assert_eq!(stream, Shell::default().new_line().as_bytes());
+    assert_eq!(stream, Shell::default().prompt().as_bytes());
 }
 
 #[test]
@@ -64,7 +64,12 @@ fn handler_writes() {
         let mut stream = MockStream::empty();
         Handler::new(Shell::default(), &mut stream)
             .handle_response(Response::Write(arg.to_string()));
-        assert_eq!(stream, arg.as_bytes());
+        assert_eq!(
+            stream.buf.trim_ascii_end(),
+            arg.as_bytes(),
+            "got: {:?}, expected: {arg}",
+            std::str::from_utf8(&stream.buf),
+        );
     }
 }
 

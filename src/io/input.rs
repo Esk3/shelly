@@ -29,7 +29,7 @@ impl InputString {
 impl From<InputBytes> for ByteRequest {
     fn from(value: InputBytes) -> Self {
         let mut e = Escaper::new(value.value);
-        let command = e.next().unwrap();
+        let command = e.next().unwrap_or_default();
         let args = e.collect::<Vec<_>>();
         ByteRequest::new(command, args)
     }

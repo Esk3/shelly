@@ -28,7 +28,7 @@ where
 
     pub fn run(mut self) {
         loop {
-            self.print_newline().unwrap();
+            self.print_prompt().unwrap();
             if let RequestResult::Break = self.handle_command() {
                 break;
             }
@@ -38,36 +38,41 @@ where
     fn handle_command(&mut self) -> RequestResult {
         let input = self.read_input().unwrap();
 
-        let response = match self.handle_input(input) {
+        let result = self.handle_input(input);
+        let response = match result {
             Ok(res) => res,
-            Err(err) => match err {
-                InputError::Empty => return RequestResult::Continue,
-                InputError::Command(handler_error) => match handler_error {
-                    shell::HandlerError::Router(router_error) => {
-                        unsafe {
-                            self.io
-                                .inner()
-                                .write_all(router_error.to_string().as_bytes())
-                                .unwrap();
-                            self.io.inner().flush().unwrap();
-                        }
-                        unsafe {
-                            self.io.inner().write_all(b"\r\n").unwrap();
-                            self.io.inner().flush().unwrap();
-                        }
-                        return RequestResult::Continue;
-                    }
-                    shell::HandlerError::Command(error) => todo!("{error}"),
-                },
-                InputError::Utf8(_) => todo!(),
-            },
+            Err(err) => return self.handle_input_error(err),
         };
         let response = Self::handle_shell_response(response);
         self.handle_response(response)
     }
 
-    fn print_newline(&mut self) -> std::io::Result<usize> {
-        let text = self.shell.new_line();
+    fn handle_input_error(&mut self, err: InputError) -> RequestResult {
+        match err {
+            InputError::Empty => RequestResult::Continue,
+            InputError::Command(handler_error) => match handler_error {
+                shell::HandlerError::Router(router_error) => {
+                    unsafe {
+                        self.io
+                            .inner()
+                            .write_all(router_error.to_string().as_bytes())
+                            .unwrap();
+                        self.io.inner().flush().unwrap();
+                    }
+                    unsafe {
+                        self.io.inner().write_all(b"\r\n").unwrap();
+                        self.io.inner().flush().unwrap();
+                    }
+                    RequestResult::Continue
+                }
+                shell::HandlerError::Command(error) => todo!("{error:?}"),
+            },
+            InputError::Utf8(err) => todo!("{err:?}"),
+        }
+    }
+
+    fn print_prompt(&mut self) -> std::io::Result<usize> {
+        let text = self.shell.prompt();
         // Safety
         // writing directly to stream at the start of a new line is fine as long as we don't do a read
         unsafe {

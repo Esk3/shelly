@@ -40,6 +40,12 @@ impl StdInEvents {
     }
 }
 
+impl Default for StdInEvents {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InputEvents for StdInEvents {
     fn recive_event(&mut self) -> Result<Event> {
         let Some(event) = self.stdin.next() else {
