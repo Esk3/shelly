@@ -1,14 +1,15 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
 
-use cmd_type::CmdType;
-
 use crate::exit::ExitCode;
 
 use crate::shell::{ByteRequest, State};
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum Error {}
+pub enum Error {
+    #[error("invalid input")]
+    InvalidInput,
+}
 
 pub mod cd;
 pub mod cmd_type;
@@ -19,7 +20,7 @@ pub mod pwd;
 #[cfg(test)]
 mod tests;
 
-pub trait Command: Debug {
+pub trait Command {
     type Request;
     type Response;
     type Error;
@@ -46,7 +47,8 @@ impl ShellCommands {
     pub fn add<C>(&mut self, command: C) -> &mut Self
     where
         C: Command<Request = ByteRequest, Response = Response, Error = Error, State = State>
-            + 'static,
+            + 'static
+            + Debug,
     {
         self.0.push(Box::new(command));
         self
@@ -64,10 +66,10 @@ impl ShellCommands {
             .ok_or(RouterError::NotFound(request.command.clone()))
     }
 
-    #[must_use]
-    pub fn find_executable_path(command: &str, path: &[String]) -> Option<String> {
-        CmdType::is_executable(command, path)
-    }
+    //#[must_use]
+    //pub fn find_executable_path(command: &str, path: &[String]) -> Option<String> {
+    //    CmdType::is_executable(command, path)
+    //}
 
     fn all_names(&self) -> Vec<&'static str> {
         self.0.iter().map(|cmd| cmd.name()).collect()
@@ -88,7 +90,11 @@ impl Default for ShellCommands {
             .add(echo::Echo)
             .add(exit::Exit);
         let all = this.all_names();
-        this.add(cmd_type::CmdType::new(all));
+        let fs = crate::fs::OsFileSystem;
+        // TODO
+        #[cfg(test)]
+        let fs = crate::fs::tests::MockFs::empty();
+        this.add(cmd_type::CmdType::new(all, fs));
         this
     }
 }

@@ -12,9 +12,11 @@ where
 #[test]
 fn route_empty_returns_not_found() {
     let cmd = "abc";
-    let request = Request::new(cmd, []);
+    let request = ByteRequest::new(cmd, []);
     tester(|mut router| {
-        let err = router.find_handler(&request).unwrap_err();
+        let Err(err) = router.find_handler(&request) else {
+            panic!()
+        };
         assert_eq!(err, RouterError::NotFound(cmd.into()));
     });
 }

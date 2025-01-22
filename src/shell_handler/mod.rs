@@ -1,25 +1,24 @@
 use std::fmt::Debug;
 
 use crate::{
-    io::{InputBytes, Io, StdIoStream, Stream},
+    io::{InputBytes, Io, Stream},
     shell::{self, Shell},
 };
 
 #[cfg(test)]
 mod tests;
 
-pub type StdHandler = Handler<StdIoStream>;
-
-pub struct Handler<S> {
-    shell: Shell,
+pub struct Handler<F, S> {
+    shell: Shell<F>,
     io: Io<S>,
 }
 
-impl<S> Handler<S>
+impl<F, S> Handler<F, S>
 where
+    F: crate::fs::FileSystem,
     S: Stream + Debug,
 {
-    pub fn new(shell: Shell, stream: S) -> Self {
+    pub fn new(shell: Shell<F>, stream: S) -> Self {
         Self {
             shell,
             io: Io::new(stream),

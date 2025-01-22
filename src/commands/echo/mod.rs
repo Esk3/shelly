@@ -1,4 +1,4 @@
-use crate::shell::{ByteRequest, TextRequest};
+use crate::shell::ByteRequest;
 
 use super::{Command, Error, Response, State};
 
@@ -23,8 +23,12 @@ impl Command for Echo {
         request: Self::Request,
         _: &Self::State,
     ) -> Result<Self::Response, Self::Error> {
-        let request = TextRequest::try_from(request).unwrap();
-        let echo = request.args.join(" ");
+        let request = request
+            .args
+            .into_iter()
+            .map(|s| std::string::String::from_utf8_lossy(&s).to_string())
+            .collect::<Vec<_>>();
+        let echo = request.join(" ");
 
         Ok(Response::new_message(echo))
     }

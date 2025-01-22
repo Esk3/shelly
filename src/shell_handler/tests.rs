@@ -1,6 +1,6 @@
 use crate::{io::tests::MockStream, shell};
 
-type MockHandler = Handler<MockStream>;
+type MockHandler = Handler<crate::fs::tests::MockFs, MockStream>;
 
 use super::*;
 

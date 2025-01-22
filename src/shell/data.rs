@@ -4,7 +4,6 @@ use std::path::PathBuf;
 pub struct State {
     pub cwd: std::path::PathBuf,
     pub path: Vec<String>,
-    pub fs: crate::fs::OsFileSystem,
 }
 
 impl State {
@@ -17,7 +16,6 @@ impl State {
         Self {
             cwd: env_data.current_dir,
             path,
-            fs: crate::fs::OsFileSystem,
         }
     }
     #[cfg(test)]

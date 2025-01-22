@@ -2,7 +2,34 @@ use crate::exit::ExitCode;
 
 use super::*;
 
-type MockShell = Shell;
+type MockShell = Shell<crate::fs::tests::MockFs>;
+
+impl Default for Shell<crate::fs::tests::MockFs> {
+    fn default() -> Self {
+        Self {
+            data: State::dummy(),
+            commands: ShellCommands::default(),
+            fs: crate::fs::tests::MockFs::new(
+                ["/abc/xyz"]
+                    .into_iter()
+                    .map(std::convert::Into::into)
+                    .collect(),
+                [
+                    "/abc/",
+                    "/xyz",
+                    "/hello_world",
+                    "/home/other",
+                    "/home/dummy/dir/abc",
+                    "/home/dummy/dir/abc/xyz",
+                    "/home/dummy/dir/abc/xyz/hello_world",
+                ]
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
+            ),
+        }
+    }
+}
 
 fn tester<F, T>(f: F) -> T
 where
