@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use crate::exit::ExitCode;
-
 use crate::shell::{ByteRequest, State};
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -15,27 +14,18 @@ pub mod cd;
 pub mod cmd_type;
 pub mod echo;
 pub mod exit;
+mod into_text_command;
 pub mod pwd;
 
 #[cfg(test)]
 mod tests;
 
 pub trait Command {
-    type Request;
-    type Response;
-    type Error;
-    type State;
     fn name(&self) -> &'static str;
-    #[allow(clippy::missing_errors_doc)]
-    fn call(
-        &mut self,
-        request: Self::Request,
-        state: &Self::State,
-    ) -> Result<Self::Response, Self::Error>;
+    fn call(&mut self, request: ByteRequest, state: &State) -> Result<Response, Error>;
 }
 
-pub type ShellCommand =
-    Box<dyn Command<Request = ByteRequest, Response = Response, Error = Error, State = State>>;
+pub type ShellCommand = Box<dyn Command>;
 
 pub struct ShellCommands(Vec<ShellCommand>);
 
@@ -46,9 +36,7 @@ impl ShellCommands {
     }
     pub fn add<C>(&mut self, command: C) -> &mut Self
     where
-        C: Command<Request = ByteRequest, Response = Response, Error = Error, State = State>
-            + 'static
-            + Debug,
+        C: Command + 'static + Debug,
     {
         self.0.push(Box::new(command));
         self
@@ -65,11 +53,6 @@ impl ShellCommands {
             })
             .ok_or(RouterError::NotFound(request.command.clone()))
     }
-
-    //#[must_use]
-    //pub fn find_executable_path(command: &str, path: &[String]) -> Option<String> {
-    //    CmdType::is_executable(command, path)
-    //}
 
     fn all_names(&self) -> Vec<&'static str> {
         self.0.iter().map(|cmd| cmd.name()).collect()

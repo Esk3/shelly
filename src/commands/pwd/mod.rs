@@ -5,20 +5,15 @@ mod tests;
 pub struct Pwd;
 
 impl super::Command for Pwd {
-    type Request = super::ByteRequest;
-    type Response = super::Response;
-    type Error = super::Error;
-    type State = super::State;
-
     fn name(&self) -> &'static str {
         "pwd"
     }
 
     fn call(
         &mut self,
-        _: Self::Request,
-        state: &Self::State,
-    ) -> Result<Self::Response, Self::Error> {
-        Ok(Self::Response::new_message(state.cwd.to_str().unwrap()))
+        _: crate::shell::ByteRequest,
+        state: &crate::shell::State,
+    ) -> Result<super::Response, super::Error> {
+        Ok(super::Response::new_message(state.cwd.to_str().unwrap()))
     }
 }

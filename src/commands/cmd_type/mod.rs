@@ -58,20 +58,11 @@ impl<F> Command for CmdType<F>
 where
     F: crate::fs::FileSystem,
 {
-    type Request = ByteRequest;
-    type Response = super::Response;
-    type Error = Error;
-    type State = State;
-
     fn name(&self) -> &'static str {
         "type"
     }
 
-    fn call(
-        &mut self,
-        request: Self::Request,
-        _state: &Self::State,
-    ) -> Result<Self::Response, Self::Error> {
+    fn call(&mut self, request: ByteRequest, _state: &State) -> Result<super::Response, Error> {
         let request = TextRequest::try_from(request).unwrap();
         let res = self.handle_command(request.args.first().unwrap().clone());
         Ok(super::Response::new_message(res.to_string()))

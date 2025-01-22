@@ -9,20 +9,11 @@ mod tests;
 pub struct Echo;
 
 impl Command for Echo {
-    type Request = ByteRequest;
-    type Response = Response;
-    type Error = Error;
-    type State = State;
-
     fn name(&self) -> &'static str {
         "echo"
     }
 
-    fn call(
-        &mut self,
-        request: Self::Request,
-        _: &Self::State,
-    ) -> Result<Self::Response, Self::Error> {
+    fn call(&mut self, request: ByteRequest, _: &State) -> Result<Response, Error> {
         let request = request
             .args
             .into_iter()

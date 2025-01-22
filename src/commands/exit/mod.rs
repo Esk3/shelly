@@ -12,20 +12,11 @@ mod tests;
 pub struct Exit;
 
 impl Command for Exit {
-    type Request = ByteRequest;
-    type Response = Response;
-    type Error = Error;
-    type State = State;
-
     fn name(&self) -> &'static str {
         "exit"
     }
 
-    fn call(
-        &mut self,
-        request: Self::Request,
-        _: &Self::State,
-    ) -> Result<Self::Response, Self::Error> {
+    fn call(&mut self, request: ByteRequest, _: &State) -> Result<Response, Error> {
         let request = TextRequest::try_from(request).unwrap();
         let code = request.args.first().map_or(0, |code| code.parse().unwrap());
         let code = ExitCode::from(code);
