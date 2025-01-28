@@ -32,7 +32,12 @@ impl StdOutEvents {
 impl OutputEvents for StdOutEvents {
     fn output(&mut self, output: Event) -> std::io::Result<()> {
         match output {
-            Event::WriteBack(buf) => self.stdout.write_all(buf),
+            Event::WriteBack(buf) => {
+                self.stdout.suspend_raw_mode().unwrap();
+                self.stdout.write_all(buf)?;
+                self.stdout.activate_raw_mode().unwrap();
+                Ok(())
+            }
             Event::WriteStart(buf) => {
                 let (_, y) = self.stdout.cursor_pos()?;
                 write!(
