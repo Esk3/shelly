@@ -10,7 +10,7 @@ fn exit_name() {
 #[test]
 fn exit_returns_exit_event() {
     let res = Exit
-        .call(ByteRequest::empty("exit"), &State::dummy())
+        .call(TextRequest::empty("exit"), &State::dummy())
         .unwrap();
     assert_eq!(
         res.event.unwrap()[0],
@@ -25,7 +25,7 @@ fn exit_event_code_matches_arg() {
     for code in codes {
         let res = Exit
             .call(
-                ByteRequest::new("exit", [code.to_string().as_bytes().to_vec()]),
+                TextRequest::new("exit", [code.to_string()]),
                 &State::dummy(),
             )
             .unwrap();

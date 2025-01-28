@@ -7,6 +7,7 @@ pub trait TextCommand {
     fn call(&mut self, request: TextRequest, state: &State) -> Result<Response, Error>;
 }
 
+#[derive(Debug)]
 pub struct IntoTextCommand<T>(T);
 
 impl<T> super::Command for IntoTextCommand<T>
@@ -18,7 +19,13 @@ where
     }
 
     fn call(&mut self, request: ByteRequest, state: &State) -> Result<Response, Error> {
-        let request = TextRequest::try_from(request).unwrap();
+        let request = TextRequest::try_from(request).map_err(|_| Error::InvalidInput)?;
         self.0.call(request, state)
+    }
+}
+
+impl<T> From<T> for IntoTextCommand<T> {
+    fn from(value: T) -> Self {
+        Self(value)
     }
 }

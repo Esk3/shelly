@@ -34,6 +34,21 @@ impl ShellCommands {
     pub fn new(commands: Vec<ShellCommand>) -> Self {
         Self(commands)
     }
+
+    pub fn new_default<F>(fs: F) -> Self
+    where
+        F: crate::fs::FileSystem + 'static + Debug,
+    {
+        let mut this = Self::new(Vec::default());
+        this.add(cd::Cd)
+            .add(pwd::Pwd)
+            .add(echo::Echo)
+            .add(into_text_command::IntoTextCommand::from(exit::Exit));
+        let all = this.all_names();
+        this.add(cmd_type::CmdType::new(all, fs));
+        this
+    }
+
     pub fn add<C>(&mut self, command: C) -> &mut Self
     where
         C: Command + 'static + Debug,
@@ -63,23 +78,6 @@ impl ShellCommands {
 pub enum RouterError {
     #[error("{}: command not found", String::from_utf8(.0.clone()).unwrap())]
     NotFound(Vec<u8>),
-}
-
-impl Default for ShellCommands {
-    fn default() -> Self {
-        let mut this = Self::new(Vec::default());
-        this.add(cd::Cd)
-            .add(pwd::Pwd)
-            .add(echo::Echo)
-            .add(exit::Exit);
-        let all = this.all_names();
-        let fs = crate::fs::OsFileSystem;
-        // TODO
-        #[cfg(test)]
-        let fs = crate::fs::tests::MockFs::empty();
-        this.add(cmd_type::CmdType::new(all, fs));
-        this
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

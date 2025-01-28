@@ -51,7 +51,7 @@ fn call_returns_response() {
     let not_found = ["something", "else"].map(|s| s.as_bytes().to_vec());
     let mut command = CmdType::new(
         builtin,
-        crate::fs::tests::MockFs::new(builtin.map(|s| s.into()).to_vec(), [].to_vec()),
+        crate::fs::tests::MockFs::new(builtin.map(std::convert::Into::into).to_vec(), [].to_vec()),
     );
     let builtin = ["abc", "xyz", "123"].map(|s| s.as_bytes().to_vec());
 

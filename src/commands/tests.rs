@@ -25,7 +25,24 @@ fn tester_default<F, T>(f: F) -> T
 where
     F: FnOnce(ShellCommands) -> T,
 {
-    f(ShellCommands::default())
+    f(ShellCommands::new_default(crate::fs::tests::MockFs::new(
+        ["/abc/xyz"]
+            .into_iter()
+            .map(std::convert::Into::into)
+            .collect(),
+        [
+            "/abc/",
+            "/xyz",
+            "/hello_world",
+            "/home/other",
+            "/home/dummy/dir/abc",
+            "/home/dummy/dir/abc/xyz",
+            "/home/dummy/dir/abc/xyz/hello_world",
+        ]
+        .into_iter()
+        .map(std::convert::Into::into)
+        .collect(),
+    )))
 }
 
 #[test]

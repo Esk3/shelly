@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, io::Write};
 
 use crate::{
     io::{InputBytes, Io, Stream},
@@ -51,17 +51,9 @@ where
             InputError::Empty => RequestResult::Continue,
             InputError::Command(handler_error) => match handler_error {
                 shell::HandlerError::Router(router_error) => {
-                    unsafe {
-                        self.io
-                            .inner()
-                            .write_all(router_error.to_string().as_bytes())
-                            .unwrap();
-                        self.io.inner().flush().unwrap();
-                    }
-                    unsafe {
-                        self.io.inner().write_all(b"\r\n").unwrap();
-                        self.io.inner().flush().unwrap();
-                    }
+                    self.io
+                        .write_line(router_error.to_string().as_bytes())
+                        .unwrap();
                     RequestResult::Continue
                 }
                 shell::HandlerError::Command(error) => todo!("{error:?}"),
@@ -72,13 +64,10 @@ where
 
     fn print_prompt(&mut self) -> std::io::Result<usize> {
         let text = self.shell.prompt();
-        // Safety
-        // writing directly to stream at the start of a new line is fine as long as we don't do a read
-        unsafe {
-            let bytes = self.io.inner().write(text.as_bytes())?;
-            self.io.inner().flush()?;
-            Ok(bytes)
-        }
+        let buf = text.as_bytes();
+        self.io.write_all(buf)?;
+        self.io.flush()?;
+        Ok(buf.len())
     }
 
     fn read_input(&mut self) -> std::io::Result<InputBytes> {
@@ -102,18 +91,8 @@ where
     fn handle_response(&mut self, response: Response) -> RequestResult {
         match response {
             Response::Write(s) => {
-                // TODO
-                // Safety
-                // writing response directly to stream is ok but should be replaced by proper
-                // method
-                unsafe {
-                    self.io.inner().write_all(s.as_bytes()).unwrap();
-                    self.io.inner().flush().unwrap();
-                };
-                unsafe {
-                    self.io.inner().write_all(b"\r\n").unwrap();
-                    self.io.inner().flush().unwrap();
-                }
+                let bytes = s.as_bytes();
+                self.io.write_line(bytes).unwrap();
                 RequestResult::Continue
             }
             Response::Exit(code) => {
