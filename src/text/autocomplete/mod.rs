@@ -1,3 +1,5 @@
+pub mod dictionary;
+
 #[cfg(test)]
 mod tests;
 

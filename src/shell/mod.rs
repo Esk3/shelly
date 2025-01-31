@@ -46,14 +46,18 @@ where
             Err(err) => match err {
                 RouterError::NotFound(_) => {
                     let request = TextRequest::try_from(request).unwrap();
-                    if let Some(_path) = self.fs.find_file_in_default_path(&request.command) {
-                        let res = std::process::Command::new(request.command)
-                            .args(request.args)
-                            .output()
-                            .unwrap();
-                        Ok(Response::Message(String::from_utf8(res.stdout).unwrap()))
-                    } else {
-                        Err(err.into())
+                    let result = std::process::Command::new(request.command)
+                        .current_dir(&self.data.cwd)
+                        .args(request.args)
+                        .output();
+                    match result {
+                        Ok(output) => {
+                            Ok(Response::Message(String::from_utf8(output.stdout).unwrap()))
+                        }
+                        Err(io_err) => match io_err.kind() {
+                            std::io::ErrorKind::NotFound => Err(err.into()),
+                            _ => todo!(),
+                        },
                     }
                 }
             },

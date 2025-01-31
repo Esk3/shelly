@@ -69,7 +69,7 @@ impl ShellCommands {
             .ok_or(RouterError::NotFound(request.command.clone()))
     }
 
-    fn all_names(&self) -> Vec<&'static str> {
+    pub fn all_names(&self) -> Vec<&'static str> {
         self.0.iter().map(|cmd| cmd.name()).collect()
     }
 }

@@ -34,9 +34,14 @@ impl<F> CmdType<F> {
     where
         F: crate::fs::FileSystem,
     {
-        self.fs
-            .find_file_in_default_path(command)
-            .map(|p| p.to_str().unwrap().to_string())
+        let binding = std::env::var("PATH").ok()?;
+        let paths = binding.split(':');
+        let binding = self
+            .fs
+            .read_dirs(paths)
+            .find(|f| f.name() == command)
+            .map(|f| format!("{}{}", f.dir().to_string_lossy(), f.name()));
+        binding
     }
 
     fn handle_command(&self, command: String) -> Response

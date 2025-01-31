@@ -2,18 +2,25 @@
 pub mod tests;
 
 pub trait FileSystem {
-    fn find_file<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn is_file<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>;
-    fn find_file_in_default_path<P>(&self, file: P) -> Option<std::path::PathBuf>
+    fn is_dir<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>;
-    fn find_dir<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn read_dir<P>(&self, path: P) -> impl Iterator<Item = DirEntry>
     where
         P: AsRef<std::path::Path>;
     fn canonicalize<P>(&self, path: P) -> Option<std::path::PathBuf>
     where
         P: AsRef<std::path::Path>;
+    fn read_dirs<I, P>(&self, paths: I) -> impl Iterator<Item = DirEntry>
+    where
+        I: Iterator<Item = P>,
+        P: AsRef<std::path::Path>,
+    {
+        paths.flat_map(|path| self.read_dir(path))
+    }
 }
 
 #[derive(Debug)]
@@ -27,46 +34,57 @@ impl OsFileSystem {
 }
 
 impl FileSystem for OsFileSystem {
-    fn find_file<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn is_file<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>,
     {
-        if path.as_ref().is_file() {
-            Some(path.as_ref().to_path_buf())
-        } else {
-            None
-        }
+        path.as_ref().is_file()
     }
 
-    fn find_file_in_default_path<P>(&self, file: P) -> Option<std::path::PathBuf>
+    fn is_dir<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>,
     {
-        let Ok(path) = std::env::var("PATH") else {
-            return None;
-        };
-        let path_seperator = ':';
-        path.split(path_seperator)
-            .map(std::path::PathBuf::from)
-            .map(|path| path.join(&file))
-            .find(|path| path.is_file())
+        path.as_ref().is_dir()
     }
 
-    fn find_dir<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn read_dir<P>(&self, path: P) -> impl Iterator<Item = DirEntry>
     where
         P: AsRef<std::path::Path>,
     {
-        if path.as_ref().is_dir() {
-            Some(path.as_ref().to_path_buf())
-        } else {
-            None
-        }
+        std::fs::read_dir(&path)
+            .unwrap()
+            .flatten()
+            .map(|e| DirEntry::new(e.path(), e.file_name().into_string().unwrap()))
     }
-
     fn canonicalize<P>(&self, path: P) -> Option<std::path::PathBuf>
     where
         P: AsRef<std::path::Path>,
     {
         path.as_ref().canonicalize().ok()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DirEntry {
+    dir: std::path::PathBuf,
+    name: String,
+}
+
+impl DirEntry {
+    fn new(dir: std::path::PathBuf, name: String) -> Self {
+        Self { dir, name }
+    }
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    #[must_use]
+    pub fn into_name(self) -> String {
+        self.name
+    }
+    #[must_use]
+    pub fn dir(&self) -> &std::path::Path {
+        &self.dir
     }
 }

@@ -26,7 +26,7 @@ where
             Event::ChangeCwd(input_path) => {
                 let new_path = self.data.cwd.join(&input_path);
                 let new_path = self.fs.canonicalize(new_path).unwrap();
-                if self.fs.find_dir(&new_path).is_none() {
+                if !self.fs.is_dir(&new_path) {
                     return Err(Error::InvalidPath(input_path));
                 }
                 self.data.cwd = new_path;

@@ -18,34 +18,35 @@ impl MockFs {
 }
 
 impl FileSystem for MockFs {
-    fn find_file<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn is_file<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>,
     {
-        dbg!(&self.files);
-        if self.files.iter().any(|p| p.as_path() == path.as_ref()) {
-            Some(path.as_ref().to_path_buf())
-        } else {
-            None
-        }
+        self.files.iter().any(|f| f == path.as_ref())
     }
 
-    fn find_file_in_default_path<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn is_dir<P>(&self, path: P) -> bool
     where
         P: AsRef<std::path::Path>,
     {
-        self.find_file(path)
+        self.dirs.iter().any(|dir| dir == path.as_ref())
     }
 
-    fn find_dir<P>(&self, path: P) -> Option<std::path::PathBuf>
+    fn read_dir<P>(&self, path: P) -> impl Iterator<Item = DirEntry>
     where
         P: AsRef<std::path::Path>,
     {
-        if self.dirs.iter().any(|p| p.as_path() == path.as_ref()) {
-            Some(path.as_ref().to_path_buf())
-        } else {
-            None
-        }
+        self.files
+            .iter()
+            .filter(|f| f.starts_with(&path))
+            .map(|f| {
+                DirEntry::new(
+                    path.as_ref().to_path_buf(),
+                    f.file_name().unwrap().to_str().unwrap().to_string(),
+                )
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 
     fn canonicalize<P>(&self, path: P) -> Option<std::path::PathBuf>
